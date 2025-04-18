@@ -6,6 +6,8 @@
 \usage{
 create_trips_table(
   gtfs,
+  netplan_gtfs = TRUE,
+  reference_date = NULL,
   day_type,
   network,
   by_direction = TRUE,
@@ -15,6 +17,10 @@ create_trips_table(
 }
 \arguments{
 \item{gtfs}{List of Data Frames. GTFS data. Output from read_gtfs function or combine_gtfs function.}
+
+\item{netplan_gtfs}{T/F. Is the GTFS you are using exported from NetPlan?}
+
+\item{reference_date}{Character. Reference Date to calculate metrics for. Required for Non-NetPlan GTFS data.}
 
 \item{day_type}{Character. Day of Week. Options are 'wkd', 'sat', 'sun'}
 
