@@ -54,7 +54,7 @@ combine_gtfs <- function(gtfs_filepath, designated_start_date, designated_end_da
                                          col_names = T,  show_col_types = F, progress = F)
 
 
-        weekday[[8]] <- readr::read_csv(here::here(gtfs_filepath, gtfs_folders[i],"stop_times.txt"),  col_types = list("c","c", "c", "c", "n", "n", "n", "n", "n"),
+        weekday[[8]] <- readr::read_csv(here::here(gtfs_filepath, gtfs_folders[i],"stop_times.txt"),  col_types = list("c","c", "c", "c", "n", "n", "n", "n", "n", "n"),
                                         col_names = T,  show_col_types = F, progress = F)
         names(weekday) <- c("agency", "calendar", "calendar_dates",  "shapes",
                             "trips","routes", "stops", "stop_times")
@@ -118,6 +118,30 @@ combine_gtfs <- function(gtfs_filepath, designated_start_date, designated_end_da
     dplyr::bind_rows() %>%
     dplyr::distinct()
 
+  # Equal Shape Distance Diff Coordinates Check
+  # This is a check to see if the shape_dist_traveled is equal for two points with different coordinates. If so, it will remove the duplicate point.
+  # This check is repeated until no more duplicates are found (when shape_dist_traveled is the same for more than two consecutive distinct points).
+  repeat {
+    # Create a temporary data frame that filters out records that violate check
+    shapes_temp <- shapes %>%
+      dplyr::mutate(prev_id = dplyr::lag(shape_id),
+                    prev_lat = dplyr::lag(shape_pt_lat),
+                    prev_lon = dplyr::lag(shape_pt_lon),
+                    prev_seq = dplyr::lag(shape_pt_sequence),
+                    prev_dist = dplyr::lag(shape_dist_traveled),
+                    flag = ifelse(shape_id == prev_id & (shape_pt_lat != prev_lat | shape_pt_lon != prev_lon) & shape_dist_traveled == prev_dist, 1, 0)) %>%
+      dplyr::filter(flag == 0 | is.na(flag))
+
+    # Stops check when no more records have been removed (temporary data frame matches original shapes.txt data frame)
+    if (nrow(shapes_temp) == nrow(shapes)) {
+      break
+    }
+
+    # Replace shapes data frame with the temporary data frame
+    shapes <- shapes_temp
+  }
+
+  shapes <- dplyr::select(shapes, shape_id:shape_dist_traveled)
 
   combined_gtfs <- list()
 
