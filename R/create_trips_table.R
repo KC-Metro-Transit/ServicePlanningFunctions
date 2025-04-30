@@ -1,6 +1,8 @@
 #' Create summary table of trips and headways
 #'
 #' @param gtfs List of Data Frames. GTFS data. Output from read_gtfs function or combine_gtfs function.
+#' @param netplan_gtfs T/F. Is the GTFS you are using exported from NetPlan?
+#' @param reference_date Character. Reference Date to calculate metrics for. Required for Non-NetPlan GTFS data.
 #' @param day_type Character. Day of Week. Options are 'wkd', 'sat', 'sun'
 #' @param network Character. GTFS. Options are 'baseline_gtfs', 'proposed_gtfs'
 #' @param by_direction T/F. Do you want a breakdown by inbound/outbound direction?
@@ -17,13 +19,61 @@
 #'
 #' spring_24_trip_table <- create_trips_table(gtfs = baseline_gtfs, day_type = 'wkd', network = 'baseline_gtfs', by_direction = FALSE, by_period = TRUE)
 
-create_trips_table <- function(gtfs, day_type, network, by_direction = TRUE, by_period = TRUE, routes = NULL){
+create_trips_table <- function(gtfs, netplan_gtfs = TRUE, reference_date = NULL, day_type, network, by_direction = TRUE, by_period = TRUE, routes = NULL){
   if(missing(gtfs)) {
     cli::cli_abort(c("X" = "No GTFS data provided."))
   } else if(!(network %in% c("baseline_gtfs", "proposed_gtfs"))) {
     cli::cli_abort(c("X" = "Invalid network provided. Set network to 'baseline_gtfs' or 'proposed_gtfs'."))
   } else {
     kcm <- map(gtfs, as_tibble) # Convert all data frames in the list to tibbles
+  }
+
+  # Prep GTFS if Non-Netplan GTFS (Based on output from tidytransit::read_gtfs)
+  if(netplan_gtfs == FALSE) {
+
+    # Get day_type from reference date
+    reference_day_type <- case_match(lubridate::wday(reference_date, label = TRUE),
+                                     c("Mon", "Tue", "Wed", "Thu", "Fri") ~ "wkd",
+                                     "Sat" ~ "sat",
+                                     "Sun" ~ "sun")
+
+    # Check if reference_date is provided and if day_type matches reference date
+    if(is.null(reference_date)) {
+      cli::cli_abort(c("X" = "Reference Date not provided for GTFS."))
+    } else if(day_type != reference_day_type) {
+      cli::cli_warn(c("!" = "day_type provided does not match reference date. day_type set to {reference_day_type}."))
+      day_type <- reference_day_type
+    }
+
+    # Filter calendar.txt for service_ids that operate on the reference date provided
+    kcm$calendar <- gtfs_calendar_full_dates(kcm$calendar, kcm$calendar_dates, netplan_gtfs = FALSE) %>%
+      filter(full_date == reference_date & ct > 0) %>%
+      pivot_wider(names_from = day_of_week, values_from = ct)
+
+    # Reconstruct calendar.txt to match initial structure
+    kcm$calendar <- bind_rows(data.frame(service_id = NA, monday = NA, tuesday = NA, wednesday = NA, thursday = NA, friday = NA, saturday = NA, sunday = NA, start_date = NA, end_date = NA),
+                              kcm$calendar) %>%
+      mutate(across(monday:sunday, ~ ifelse(is.na(.), 0, .)))
+
+    # Add service_rte_num field to routes.txt that converts route_ids into valid route numbers
+    kcm$routes <- clean_service_rte_num(kcm$routes)
+
+    # Convert route_ids into valid route numbers for trips.txt
+    kcm$trips <- kcm$trips %>%
+      left_join(select(kcm$routes, route_id, service_rte_num), by = "route_id") %>%
+      mutate(route_id = service_rte_num) %>%
+      select(-c(service_rte_num))
+
+    # Convert route_ids into valid route numbers for routes.txt (drop service_rte_num field)
+    kcm$routes <- kcm$routes %>%
+      mutate(route_id = service_rte_num) %>%
+      select(-c(service_rte_num))
+
+    # Convert arrival_time and departure_time in stop_times.txt from hms to characters
+    kcm$stop_times <- kcm$stop_times %>%
+      mutate(arrival_time = as.character(arrival_time),
+             departure_time = as.character(departure_time))
+
   }
 
   # Update routes argument if no route selection is provided or provided routes are not found
@@ -255,7 +305,8 @@ create_trips_table <- function(gtfs, day_type, network, by_direction = TRUE, by_
     # Sort dataframe, the relevant variable is start time of the trip
     # Note that we use the string start time, to ensure that a trip starting at 25:00:00
     # is sorted at the end of the day an not earlier as a 01:00:00 trip
-    arrange(route_id, direction_id, start_time_str) %>%
+    # If direction is not toggled, direction is ignored when calculating span
+    arrange(across(all_of(c('route_id', direction_toggle, 'start_time_str')))) %>%
     group_by(across(all_of(c('route_id', direction_toggle, period_toggle)))) %>% # group by direction_id and period can be toggled
     # For every corridor calculate the start time of the first trip and the
     # starting time of the last trip
