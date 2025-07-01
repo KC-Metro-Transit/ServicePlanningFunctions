@@ -110,3 +110,8 @@ another polygon. Results in a “donut” polygon.
  clipped_polygon <- st_erase(big_box, polygon_to_remove)
  plot(st_geometry(clipped_polygon))
 ```
+
+## count_trips_by_geography() Example
+
+Function takes a GTFS and a spatial dataset and counts unique trips at
+stops in each polygon.
