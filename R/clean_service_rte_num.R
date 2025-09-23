@@ -85,9 +85,23 @@ na_routes <- clean_routes %>%
 if (nrow(na_routes)>0) {
   print(paste0(nrow(na_routes), " route names need to be fixed. Please provide valid service route numbers for the following:"))
   for (i in 1:nrow(na_routes)) {
-    temp_service_rte_num <- readline(prompt = paste0("Enter service route number for ", na_routes$route_short_name[i], ": "))
-    na_routes$service_rte_num[i] <- temp_service_rte_num
+
+    # Prompt user to input invalid service route numbers
+    repeat {
+      temp_service_rte_num <- readline(prompt = paste0("Enter service route number for ", na_routes$route_short_name[i], ": "))
+
+      # Check if user input for service route number already exists and only accept unique values
+      if(!(temp_service_rte_num %in% clean_routes$service_rte_num)) {
+        na_routes$service_rte_num[i] <- temp_service_rte_num
+        break
+      }
+    }
+
   }
+
+  # Append user updated route records back to clean_routes
+  clean_routes <- filter(clean_routes, !is.na(as.numeric(service_rte_num)) & !is.null(as.numeric(service_rte_num))) %>%
+    bind_rows(na_routes)
   #print(na_routes)
   #stop("STOP! Route names need to be fixed")
 } else {
