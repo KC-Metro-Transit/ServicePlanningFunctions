@@ -94,10 +94,12 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
     dplyr::filter(is.na(service_rte_num) | is.null(service_rte_num))
 
   if (nrow(na_routes) > 0) {
-    print(paste0(
-      nrow(na_routes),
-      " route names need to be fixed. Please provide valid service route numbers for the following:"
-    ))
+    cli::cli_alert_warning(
+      paste0(
+        nrow(na_routes),
+        " route names need to be fixed. Please provide valid service route numbers for the following:"
+      )
+    )
     for (i in 1:nrow(na_routes)) {
       # Prompt user to input invalid service route numbers
       repeat {
@@ -110,15 +112,17 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         )
 
         # Check if user input for service route number already exists and only accept unique values
+        # Exit if user enters quit command
         if (temp_service_rte_num == 'q') {
           break
         } else if (!(temp_service_rte_num %in% clean_routes$service_rte_num)) {
           na_routes$service_rte_num[i] <- temp_service_rte_num
           break
         } else {
-          message(paste(
+          cli::cli_alert_warning(paste(
+            "Service route number",
             temp_service_rte_num,
-            "already exists. Please enter a unique service route number."
+            "already exists. Please enter a unique value."
           ))
         }
       }
@@ -133,11 +137,9 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         !is.null(as.numeric(service_rte_num))
     ) %>%
       dplyr::bind_rows(na_routes)
-    #print(na_routes)
-    #stop("STOP! Route names need to be fixed")
   } else {
-    print("All routes have valid service route numbers.")
-    print(clean_routes$service_rte_num)
+    cli::cli_inform("All routes have valid service route numbers.")
+    cli::cli_text(paste(clean_routes$service_rte_num, collapse = " "))
   }
   return(clean_routes)
 }
