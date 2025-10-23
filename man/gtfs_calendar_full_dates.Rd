@@ -7,7 +7,7 @@
 gtfs_calendar_full_dates(
   calendar,
   calendar_dates = NULL,
-  netplan_gtfs = FALSE,
+  netplan_gtfs,
   designated_start_date = NULL,
   designated_end_date = NULL
 )

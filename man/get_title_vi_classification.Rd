@@ -4,7 +4,12 @@
 \alias{get_title_vi_classification}
 \title{Get Title VI Classification}
 \usage{
-get_title_vi_classification(acs_year, geography, state = "WA", county = "King")
+get_title_vi_classification(
+  acs_year,
+  geography = NULL,
+  state = "WA",
+  county = "King"
+)
 }
 \arguments{
 \item{acs_year}{Numeric. Year of data to return for American Community Survey}

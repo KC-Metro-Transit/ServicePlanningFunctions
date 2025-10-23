@@ -1,3 +1,13 @@
+#' Connect to T-BIRD Data Warehouse
+#'
+#' @returns A connection object
+#'
+#' @export
+#' @examples
+#' con <- connect_to_tbird()
+#' # Must be on KCM VPN for this to work
+#'
+#'
 connect_to_tbird <- function() {
   con <- DBI::dbConnect(
     odbc::odbc(),
