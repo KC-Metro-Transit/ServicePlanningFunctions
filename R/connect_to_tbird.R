@@ -17,13 +17,14 @@ connect_to_tbird <- function() {
     Authentication = "ActiveDirectoryIntegrated"
   )
 
-  if (DBI::dbIsValid(con) == TRUE) {
-    cli::cli_alert_success(
-      text = "Connection to T-BIRD successful"
-    )
-  } else {
+  if (DBI::dbIsValid(con) == FALSE) {
     cli::cli_alert_warning(
       text = "Connection to T-BIRD NOT successful. Are you on the VPN?"
     )
+  } else {
+    cli::cli_alert_success(
+      text = "Connection to T-BIRD successful"
+    )
+    con
   }
 }
