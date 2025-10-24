@@ -4,7 +4,7 @@
 #'
 #' @export
 #' @examples
-#' con <- connect_to_tbird()
+#' #con <- connect_to_tbird()
 #' # Must be on KCM VPN for this to work
 #'
 #'

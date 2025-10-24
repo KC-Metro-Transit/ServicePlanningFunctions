@@ -30,7 +30,7 @@ create_trips_table(
 
 \item{by_period}{T/F. Do you want a breakdown by period?}
 
-\item{routes}{Character. Filter by Routes}
+\item{routes}{Character. dplyr::filter by Routes}
 }
 \value{
 Data frame of summary metrics of GTFS input (Trip Count, Span, Headway)
