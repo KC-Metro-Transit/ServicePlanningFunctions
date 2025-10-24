@@ -55,10 +55,10 @@ get_trip_ridership <- function(
   AND SERVICE_RTE_NUM IN ({vals2*})
   AND SCHED_DAY_TYPE_CODED_NUM IN ({vals3*})
   ",
-      vals1 = service_changes,
+      vals1 = service_change,
       vals2 = route,
       vals3 = day_codes$sched_day_type_coded_num,
-      .con = tbird_connectionon
+      .con = tbird_connection
     )
   ) %>%
     janitor::clean_names() %>%
