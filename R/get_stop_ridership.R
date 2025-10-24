@@ -1,3 +1,16 @@
+#' Get Stop Ridership from T-BIRD
+#' Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL
+#' @param service_change_num Numeric. The three-digit identifier of the service change.
+#'  Can accept multiple values as a vector.
+#' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
+#' Can accept multiple values as a vector.
+#' @param stop_id A vector of stop IDs or "All" if all stops on a route are of interest.
+#' @param tbird_connection The connection object created by connect_to_tbird()
+#'
+#' @returns A dataframe of stop activity for selected routes, service changes and stops.
+#'
+#' @export
+
 get_stop_ridership <- function(
   service_change_num,
   route,
