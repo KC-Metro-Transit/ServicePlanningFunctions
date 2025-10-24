@@ -32,7 +32,7 @@ AND SERVICE_RTE_NUM IN ({vals2*})
   ",
         vals1 = service_change_num,
         vals2 = route,
-        .con = con
+        .con = tbird_connection
       )
     )
   } else {
@@ -66,7 +66,7 @@ AND SERVICE_RTE_NUM IN ({vals2*})
         vals1 = service_change_num,
         vals2 = route,
         vals3 = stop_id,
-        .con = con
+        .con = tbird_connection
       )
     )
 
