@@ -204,7 +204,39 @@ append_gtfs <- function(
     baseline$routes,
     !route_id %in% project_routes
   )
-  baseline$trips <- dplyr::filter(baseline$trips, !route_id %in% project_routes)
+
+  # Assume the baseline network for missing day types for each route in the proposed network.
+  # (i.e. Proposed changes made to weekday service only for a route)
+  # Currently does not handle proposed network deleting service entirely for a specific day type
+
+  # Create a field "route_day_key" that identifies unique route and day type combinations
+  proposed$trips <- dplyr::mutate(
+    proposed$trips,
+    route_day_key = stringr::str_c(
+      route_id,
+      stringr::str_extract(service_id, '(Weekday|Saturday|Sunday)'),
+      sep = "-"
+    )
+  )
+
+  baseline$trips <- dplyr::mutate(
+    baseline$trips,
+    route_day_key = stringr::str_c(
+      route_id,
+      stringr::str_extract(service_id, '(Weekday|Saturday|Sunday)'),
+      sep = "-"
+    )
+  )
+
+  # Filter Baseline Trips table to later append to proposed network
+  # Removes deleted routes
+  # Removes route and day type combinations already found in proposed network
+  baseline$trips <- dplyr::filter(
+    baseline$trips,
+    !route_id %in% deleted_routes &
+      !route_day_key %in% proposed$trips$route_day_key
+  ) %>%
+    dplyr::select(-route_day_key)
   baseline$stop_times <- dplyr::filter(
     baseline$stop_times,
     trip_id %in% baseline$trips$trip_id
