@@ -69,6 +69,10 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         route_short_name == "Trailhead Direct Issaquah Alps" ~ "637",
         route_short_name == "Trailhead Direct Cougar Mt." ~ "639",
         route_short_name == "Blue" ~ "999",
+        route_short_name == "Swift Blue" ~ "701",
+        route_short_name == "Swift Green" ~ "702",
+        route_short_name == "Swift Orange" ~ "703",
+        route_short_name == "STCL" ~ "999",
         TRUE ~ route_short_name
       )
     )
@@ -85,9 +89,9 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
 
   clean_routes <- dplyr::bind_rows(routes_na, routes_named) %>%
     dplyr::mutate(
-      service_rte_num = stringr::str_remove(service_rte_num, "S|C|B|E")
+      service_rte_num = stringr::str_remove(service_rte_num, "[A-z]+")
     ) %>%
-    dplyr::distinct(service_rte_num, .keep_all = TRUE)
+    dplyr::distinct(agency_id, service_rte_num, .keep_all = TRUE)
 
   na_routes <- clean_routes %>%
     dplyr::mutate(service_rte_num = as.numeric(service_rte_num)) %>%
