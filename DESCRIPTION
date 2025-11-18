@@ -25,7 +25,8 @@ Imports:
     odbc, 
     fs, 
     DBI, 
-    janitor
+    janitor, 
+    glue
 URL: https://github.com/melissa-gaughan/ServicePlanningFunctions
 BugReports: https://github.com/melissa-gaughan/ServicePlanningFunctions/issues
 Suggests: 
