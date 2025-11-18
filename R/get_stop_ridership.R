@@ -86,7 +86,7 @@ AND SERVICE_RTE_NUM IN ({vals2*})
   stop_data |>
     janitor::clean_names() %>%
     dplyr::mutate(
-      time_period = case_when(
+      time_period_at_stop = case_when(
         arrive >= 300 & arrive < 540 ~ 'AM Peak',
         arrive >= 540 & arrive < 900 ~ 'Midday',
         arrive >= 900 & arrive < 1140 ~ 'PM Peak',
