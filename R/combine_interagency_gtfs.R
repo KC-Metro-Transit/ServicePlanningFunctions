@@ -16,14 +16,14 @@ combine_interagency_gtfs <- function(
   output_folder = NULL
 ) {
   if (!dir.exists(gtfs_filepath)) {
-    print(
+    cli::cli_abort(
       "Folder does not exist. Make sure the folder path is correct and points to the parent directory of the GTFS you are combining."
     )
   } else {
     gtfs_folders <- list.files(gtfs_filepath)
 
     if (length(stringr::str_subset(gtfs_folders, pattern = "txt")) != 0) {
-      stop(
+      cli::cli_abort(
         "Filepath should be for the location of the folders to be combined, not a sub-folder."
       )
     } else {
@@ -119,7 +119,7 @@ combine_interagency_gtfs <- function(
           show_col_types = F,
           progress = F
         ) %>%
-          mutate(stop_id = as.character(stop_id))
+          dplyr::mutate(stop_id = as.character(stop_id))
 
         weekday[[8]] <- readr::read_csv(
           here::here(gtfs_filepath, gtfs_folders[i], "stop_times.txt"),
@@ -141,7 +141,7 @@ combine_interagency_gtfs <- function(
 
         # Add agency id to trips table
         weekday$trips <- weekday$trips %>%
-          left_join(
+          dplyr::left_join(
             select(weekday$routes, agency_id, route_id),
             by = "route_id"
           )
