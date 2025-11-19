@@ -7,7 +7,7 @@
 gtfs_calendar_full_dates(
   calendar,
   calendar_dates = NULL,
-  netplan_gtfs = FALSE,
+  netplan_gtfs,
   designated_start_date = NULL,
   designated_end_date = NULL
 )
@@ -30,19 +30,19 @@ Dataframe of dates that the service_id will be in service.
 Determine Service Dates for GTFS
 }
 \examples{
-spring_24_gtfs <- tidytransit::read_gtfs(path =
-fs::path_package( "extdata", "gtfs", "241_gtfs.zip", package = "ServicePlanningFunctions"))
-full_cal <- gtfs_calendar_full_dates(calendar = spring_24_gtfs$calendar,
- calendar_dates = spring_24_gtfs$calendar_dates, netplan_gtfs = FALSE)
+# spring_24_gtfs <- tidytransit::read_gtfs(path =
+#fs::path_package( "extdata", "gtfs", "241_gtfs.zip", package = "ServicePlanningFunctions"))
+#full_cal <- gtfs_calendar_full_dates(calendar = spring_24_gtfs$calendar,
+# calendar_dates = spring_24_gtfs$calendar_dates, netplan_gtfs = FALSE)
 
-netplan_sept24_gtfs <- tidytransit::read_gtfs(path =
- fs::path_package( "extdata", "gtfs",
- "SEPT24_TRIP_GTFS.zip",
-  package = "ServicePlanningFunctions"))
+# netplan_sept24_gtfs <- tidytransit::read_gtfs(path =
+# fs::path_package( "extdata", "gtfs",
+# "SEPT24_TRIP_GTFS.zip",
+#  package = "ServicePlanningFunctions"))
 
-netplan_full_cal <- gtfs_calendar_full_dates( calendar = netplan_sept24_gtfs$calendar,
-                                           calendar_dates = netplan_sept24_gtfs$calendar_dates,
-                                          netplan_gtfs = TRUE, designated_start_date = 20240901,
-                                           designated_end_date = 20250330)
-
+# netplan_full_cal <- gtfs_calendar_full_dates( calendar = netplan_sept24_gtfs$calendar,
+#                                           calendar_dates = netplan_sept24_gtfs$calendar_dates,
+#                                          netplan_gtfs = TRUE, designated_start_date = 20240901,
+#                                           designated_end_date = 20250330)
+#
 }

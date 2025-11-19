@@ -4,7 +4,13 @@
 \alias{remove_water}
 \title{Remove water bodies from polygon}
 \usage{
-remove_water(polygon, state_code = "WA", county_code = "King", crs = 2926)
+remove_water(
+  polygon,
+  state_code = "WA",
+  county_code = "King",
+  crs = 2926,
+  acs_year = NULL
+)
 }
 \arguments{
 \item{polygon}{sf object representing your polygon shapefile.}
@@ -14,6 +20,8 @@ remove_water(polygon, state_code = "WA", county_code = "King", crs = 2926)
 \item{county_code}{The name of the county your polygons are in. Used to fetch the water bodies in the area.}
 
 \item{crs}{The four digit CRS (AKA EPSG) code for the projection system your data is in. King County's is 2926. Web Mercator is 4326}
+
+\item{acs_year}{The four digit year of the census data you will be joining to. Defaults to 2024.}
 }
 \value{
 sf object with erased water geometries through spatial intersection.

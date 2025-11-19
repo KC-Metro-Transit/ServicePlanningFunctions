@@ -7,111 +7,153 @@
 #' @param network Character. GTFS. Options are 'baseline_gtfs', 'proposed_gtfs'
 #' @param by_direction T/F. Do you want a breakdown by inbound/outbound direction?
 #' @param by_period T/F. Do you want a breakdown by period?
-#' @param routes Character. Filter by Routes
+#' @param routes Character. dplyr::filter by Routes
 #'
 #'
 #' @return Data frame of summary metrics of GTFS input (Trip Count, Span, Headway)
 #' @export
 #'
 #' @examples
-#' baseline_gtfs <- tidytransit::read_gtfs(path =
-#' fs::path_package( "extdata", "gtfs", "241_gtfs.zip", package = "ServicePlanningFunctions"))
+#' #baseline_gtfs <- tidytransit::read_gtfs(path =
+#' #fs::path_package( "extdata", "gtfs", "241_gtfs.zip", package = "ServicePlanningFunctions"))
 #'
-#' spring_24_trip_table <- create_trips_table(gtfs = baseline_gtfs, day_type = 'wkd', network = 'baseline_gtfs', by_direction = FALSE, by_period = TRUE)
+#' #spring_24_trip_table <- create_trips_table(gtfs = baseline_gtfs, day_type = 'wkd',
+#'  #network = 'baseline_gtfs', by_direction = FALSE, by_period = TRUE)
 
-create_trips_table <- function(gtfs, netplan_gtfs = TRUE, reference_date = NULL, day_type, network, by_direction = TRUE, by_period = TRUE, routes = NULL){
-  if(missing(gtfs)) {
+create_trips_table <- function(
+  gtfs,
+  netplan_gtfs = TRUE,
+  reference_date = NULL,
+  day_type,
+  network,
+  by_direction = TRUE,
+  by_period = TRUE,
+  routes = NULL
+) {
+  if (missing(gtfs)) {
     cli::cli_abort(c("X" = "No GTFS data provided."))
-  } else if(!(network %in% c("baseline_gtfs", "proposed_gtfs"))) {
-    cli::cli_abort(c("X" = "Invalid network provided. Set network to 'baseline_gtfs' or 'proposed_gtfs'."))
+  } else if (!(network %in% c("baseline_gtfs", "proposed_gtfs"))) {
+    cli::cli_abort(c(
+      "X" = "Invalid network provided. Set network to 'baseline_gtfs' or 'proposed_gtfs'."
+    ))
   } else {
-    kcm <- map(gtfs, as_tibble) # Convert all data frames in the list to tibbles
+    kcm <- purrr::map(gtfs, tibble::as_tibble) # Convert all data frames in the list to tibbles
   }
 
   # Prep GTFS if Non-Netplan GTFS (Based on output from tidytransit::read_gtfs)
-  if(netplan_gtfs == FALSE) {
-
+  if (netplan_gtfs == FALSE) {
     # Get day_type from reference date
-    reference_day_type <- case_match(lubridate::wday(reference_date, label = TRUE),
-                                     c("Mon", "Tue", "Wed", "Thu", "Fri") ~ "wkd",
-                                     "Sat" ~ "sat",
-                                     "Sun" ~ "sun")
+    reference_day_type <- dplyr::case_match(
+      lubridate::wday(reference_date, label = TRUE),
+      c("Mon", "Tue", "Wed", "Thu", "Fri") ~ "wkd",
+      "Sat" ~ "sat",
+      "Sun" ~ "sun"
+    )
 
     # Check if reference_date is provided and if day_type matches reference date
-    if(is.null(reference_date)) {
+    if (is.null(reference_date)) {
       cli::cli_abort(c("X" = "Reference Date not provided for GTFS."))
-    } else if(day_type != reference_day_type) {
-      cli::cli_warn(c("!" = "day_type provided does not match reference date. day_type set to {reference_day_type}."))
+    } else if (day_type != reference_day_type) {
+      cli::cli_warn(c(
+        "!" = "day_type provided does not match reference date. day_type set to {reference_day_type}."
+      ))
       day_type <- reference_day_type
     }
 
-    # Filter calendar.txt for service_ids that operate on the reference date provided
-    kcm$calendar <- gtfs_calendar_full_dates(kcm$calendar, kcm$calendar_dates, netplan_gtfs = FALSE) %>%
-      filter(full_date == reference_date & ct > 0) %>%
-      pivot_wider(names_from = day_of_week, values_from = ct)
+    # dplyr::filter calendar.txt for service_ids that operate on the reference date provided
+    kcm$calendar <- gtfs_calendar_full_dates(
+      kcm$calendar,
+      kcm$calendar_dates,
+      netplan_gtfs = FALSE
+    ) %>%
+      dplyr::filter(full_date == reference_date & ct > 0) %>%
+      tidyr::pivot_wider(names_from = day_of_week, values_from = ct)
 
     # Reconstruct calendar.txt to match initial structure
-    kcm$calendar <- bind_rows(data.frame(service_id = NA, monday = NA, tuesday = NA, wednesday = NA, thursday = NA, friday = NA, saturday = NA, sunday = NA, start_date = NA, end_date = NA),
-                              kcm$calendar) %>%
-      mutate(across(monday:sunday, ~ ifelse(is.na(.), 0, .)))
+    kcm$calendar <- dplyr::bind_rows(
+      data.frame(
+        service_id = NA,
+        monday = NA,
+        tuesday = NA,
+        wednesday = NA,
+        thursday = NA,
+        friday = NA,
+        saturday = NA,
+        sunday = NA,
+        start_date = NA,
+        end_date = NA
+      ),
+      kcm$calendar
+    ) %>%
+      dplyr::mutate(dplyr::across(monday:sunday, ~ ifelse(is.na(.), 0, .)))
 
     # Add service_rte_num field to routes.txt that converts route_ids into valid route numbers
     kcm$routes <- clean_service_rte_num(kcm$routes)
 
     # Convert route_ids into valid route numbers for trips.txt
     kcm$trips <- kcm$trips %>%
-      left_join(select(kcm$routes, route_id, service_rte_num), by = "route_id") %>%
-      mutate(route_id = service_rte_num) %>%
-      select(-c(service_rte_num))
+      dplyr::left_join(
+        dplyr::select(kcm$routes, route_id, service_rte_num),
+        by = "route_id"
+      ) %>%
+      dplyr::mutate(route_id = service_rte_num) %>%
+      dplyr::select(-c(service_rte_num))
 
     # Convert route_ids into valid route numbers for routes.txt (drop service_rte_num field)
     kcm$routes <- kcm$routes %>%
-      mutate(route_id = service_rte_num) %>%
-      select(-c(service_rte_num))
+      dplyr::mutate(route_id = service_rte_num) %>%
+      dplyr::select(-c(service_rte_num))
 
     # Convert arrival_time and departure_time in stop_times.txt from hms to characters
     kcm$stop_times <- kcm$stop_times %>%
-      mutate(arrival_time = as.character(arrival_time),
-             departure_time = as.character(departure_time))
-
+      dplyr::mutate(
+        arrival_time = as.character(arrival_time),
+        departure_time = as.character(departure_time)
+      )
   }
 
-  # Update routes argument if no route selection is provided or provided routes are not found
-  if(nrow(filter(kcm$routes, route_id %in% routes)) == 0) {
+  # Update routes argument if no route dplyr::selection is provided or provided routes are not found
+  if (nrow(dplyr::filter(kcm$routes, route_id %in% routes)) == 0) {
     routes <- kcm$routes$route_id
-    cli::cli_alert_info("No valid routes provided. Generating table for all routes.")
+    cli::cli_alert_info(
+      "No valid routes provided. Generating table for all routes."
+    )
   }
 
   kcm$routes <- kcm$routes %>%
-    filter(route_id %in% routes) %>% # filter for select routes
-    mutate(route_short_name = ifelse(is.na(route_short_name), route_long_name,
-                                     paste0(route_short_name,
-                                            ' ',
-                                            route_long_name))) %>%
-    mutate(route_short_name = trimws(route_short_name))
-
-
+    dplyr::filter(route_id %in% routes) %>% # dplyr::filter for dplyr::select routes
+    dplyr::mutate(
+      route_short_name = ifelse(
+        is.na(route_short_name),
+        route_long_name,
+        paste0(route_short_name, ' ', route_long_name)
+      )
+    ) %>%
+    dplyr::mutate(route_short_name = trimws(route_short_name))
 
   # Identify service ID by type of day (weekday, sat or sun)
   service_days <- kcm$calendar %>%
     # Make sure service IDs are actually in use in the trip tables
-    filter(service_id %in% unique(kcm$trips$service_id)) %>%
-    # Define daytype of service ID to filter in next steps
-    mutate(daytype = ifelse(saturday == 1, 'sat',
-                            ifelse(sunday == 1, 'sun', 'wkd')))
-  if (day_type == "wkd"){
-    # Filter weekday only service IDs
+    dplyr::filter(service_id %in% unique(kcm$trips$service_id)) %>%
+    # Define daytype of service ID to dplyr::filter in next steps
+    dplyr::mutate(
+      daytype = ifelse(saturday == 1, 'sat', ifelse(sunday == 1, 'sun', 'wkd'))
+    )
+  if (day_type == "wkd") {
+    # dplyr::filter weekday only service IDs
     serv_wkd <- service_days %>%
-      filter(daytype == 'wkd')
-  } else if (day_type == "sat"){
-    # Filter weekday only service IDs
+      dplyr::filter(daytype == 'wkd')
+  } else if (day_type == "sat") {
+    # dplyr::filter weekday only service IDs
     serv_wkd <- service_days %>%
-      filter(daytype == 'sat')
-  } else if (day_type == "sun"){
+      dplyr::filter(daytype == 'sat')
+  } else if (day_type == "sun") {
     serv_wkd <- service_days %>%
-      filter(daytype == 'sun')
-  }else{
-    print("Day type incorrect. Options are 'wkd', 'sat', sun'. Case sensistive.")
+      dplyr::filter(daytype == 'sun')
+  } else {
+    print(
+      "Day type incorrect. Options are 'wkd', 'sat', sun'. Case sensistive."
+    )
   }
 
   # If by_direction argument is set to TRUE, output is broken down by direction (include direction_id in group_by)
@@ -131,79 +173,116 @@ create_trips_table <- function(gtfs, netplan_gtfs = TRUE, reference_date = NULL,
   }
 
   # Weekdays
-  # Filter only trips in the routes in the corridors selected
+  # dplyr::filter only trips in the routes in the corridors dplyr::selected
   trips_wkd <- kcm$trips %>%
-    filter(route_id %in% routes) %>% # filter for select routes
-    # Filter only weekday trips
-    filter(service_id %in% serv_wkd$service_id) %>%
+    dplyr::filter(route_id %in% routes) %>% # dplyr::filter for dplyr::select routes
+    # dplyr::filter only weekday trips
+    dplyr::filter(service_id %in% serv_wkd$service_id) %>%
     # Keep only relevant variables
-    select(route_id, service_id, trip_id, direction_id)  #trip_headsign,
-
+    dplyr::select(route_id, service_id, trip_id, direction_id) #trip_headsign,
 
   # Create a dataframe with the stops and times of desired trips
-  if(is.numeric(kcm$stop_times$arrival_time) == TRUE){
+  if (is.numeric(kcm$stop_times$arrival_time) == TRUE) {
     print("numeric arrival times")
     stop_times <- kcm$stop_times %>%
-      # Filter stop-trips of the relevant routes and only weekday
-      filter(trip_id %in% trips_wkd$trip_id) %>%
-      select(trip_id, arrival_time, departure_time, stop_id, stop_sequence)
+      # dplyr::filter stop-trips of the relevant routes and only weekday
+      dplyr::filter(trip_id %in% trips_wkd$trip_id) %>%
+      dplyr::select(
+        trip_id,
+        arrival_time,
+        departure_time,
+        stop_id,
+        stop_sequence
+      )
 
     #split the character string into hours minutes seconds and append to dataframe
-    stop_times[,6:8] <- stringr::str_split_fixed(stop_times$arrival_time, pattern= ":", 3)
-
-
+    stop_times[, 6:8] <- stringr::str_split_fixed(
+      stop_times$arrival_time,
+      pattern = ":",
+      3
+    )
 
     stop_times <- stop_times %>%
-      mutate(seconds_after_midnight = (as.numeric(V1)*3600) + as.numeric(V2)*60 + as.numeric(V3)) %>%
+      dplyr::mutate(
+        seconds_after_midnight = (as.numeric(V1) * 3600) +
+          as.numeric(V2) * 60 +
+          as.numeric(V3)
+      ) %>%
       # Sort the dataframe
-      arrange(trip_id, seconds_after_midnight, stop_sequence) %>%
+      dplyr::arrange(trip_id, seconds_after_midnight, stop_sequence) %>%
       # Group by unique trip (Recall this dataframe is already sorted by time)
-      group_by(trip_id) %>%
+      dplyr::group_by(trip_id) %>%
       # Create two new columns for each trip (group)
       # One with the start time (string type) of every trip
       # The other with the end time (string type) of every trip
-      mutate(start_time_str = as.numeric(min(seconds_after_midnight)),
-             end_time_str = as.numeric(max(seconds_after_midnight))) %>%
-      mutate(start_time_str = hms(seconds = start_time_str),
-             end_time_str = hms(seconds = end_time_str))
-
-  }else if (is.character(kcm$stop_times$arrival_time) == TRUE){
+      dplyr::mutate(
+        start_time_str = as.numeric(min(seconds_after_midnight)),
+        end_time_str = as.numeric(max(seconds_after_midnight))
+      ) %>%
+      dplyr::mutate(
+        start_time_str = hms(seconds = start_time_str),
+        end_time_str = hms(seconds = end_time_str)
+      )
+  } else if (is.character(kcm$stop_times$arrival_time) == TRUE) {
     print("character arrival times")
     # split into hours, minutes, seconds, convert into seconds, then find max by trip ID
     stop_times <- kcm$stop_times %>%
-      # Filter stop-trips of the relevant routes and only weekday
-      filter(trip_id %in% trips_wkd$trip_id) %>%
-      select(trip_id, arrival_time, departure_time, stop_id, stop_sequence)
+      # dplyr::filter stop-trips of the relevant routes and only weekday
+      dplyr::filter(trip_id %in% trips_wkd$trip_id) %>%
+      dplyr::select(
+        trip_id,
+        arrival_time,
+        departure_time,
+        stop_id,
+        stop_sequence
+      )
 
-    stop_times[,6:8] <- stringr::str_split_fixed(stop_times$arrival_time, pattern= ":", 3)
-
-
+    stop_times[, 6:8] <- stringr::str_split_fixed(
+      stop_times$arrival_time,
+      pattern = ":",
+      3
+    )
 
     stop_times <- stop_times %>%
-      mutate(seconds_after_midnight = (as.numeric(V1)*3600) + as.numeric(V2)*60 + as.numeric(V3)) %>%
+      dplyr::mutate(
+        seconds_after_midnight = (as.numeric(V1) * 3600) +
+          as.numeric(V2) * 60 +
+          as.numeric(V3)
+      ) %>%
       # Sort the dataframe
-      arrange(trip_id, seconds_after_midnight, stop_sequence) %>%
+      dplyr::arrange(trip_id, seconds_after_midnight, stop_sequence) %>%
       # Group by unique trip (Recall this dataframe is already sorted by time)
-      group_by(trip_id) %>%
+      dplyr::group_by(trip_id) %>%
       # Create two new columns for each trip (group)
       # One with the start time (string type) of every trip
       # The other with the end time (string type) of every trip
-      mutate(start_time_str = as.numeric(min(seconds_after_midnight)),
-             end_time_str = as.numeric(max(seconds_after_midnight))) %>%
-      mutate(start_time_str = hms::hms(seconds = start_time_str),
-             end_time_str = hms::hms(seconds = end_time_str))
-  }else{
+      dplyr::mutate(
+        start_time_str = as.numeric(min(seconds_after_midnight)),
+        end_time_str = as.numeric(max(seconds_after_midnight))
+      ) %>%
+      dplyr::mutate(
+        start_time_str = hms::hms(seconds = start_time_str),
+        end_time_str = hms::hms(seconds = end_time_str)
+      )
+  } else {
     print("check data structure of stop_times$arrival_times.")
     break
   }
 
   #headway range #####
   #calculate shortest and longest time between trips in a period.
-  headway_range_trips <- left_join(trips_wkd, stop_times) %>%
+  headway_range_trips <- dplyr::left_join(trips_wkd, stop_times) %>%
 
-    filter(!(is.na(start_time_str) | is.na(end_time_str) )) %>%
+    dplyr::filter(!(is.na(start_time_str) | is.na(end_time_str))) %>%
     # Remove potential duplicates to avoid errors in the calculations
-    distinct(., route_id, trip_id, direction_id, start_time_str, .keep_all = TRUE)# %>%
+    dplyr::distinct(
+      .,
+      route_id,
+      trip_id,
+      direction_id,
+      start_time_str,
+      .keep_all = TRUE
+    ) # %>%
 
   # Set of Clockface Headways to round headways to. Can add/remove values to designate granularity
   clockface_headway_set <- c(1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 45, 60)
@@ -212,124 +291,191 @@ create_trips_table <- function(gtfs, netplan_gtfs = TRUE, reference_date = NULL,
 
     # Extract only the hour integer from the character time and set it as numeric
     #2023.01.20 Changing this to use the str_split hour. Times over 24 are getting coded as zero.
-    mutate(hour =  as.numeric(V1) )%>%    #lubridate::hour(start_time_str)) %>%
+    dplyr::mutate(hour = as.numeric(V1)) %>% #lubridate::hour(start_time_str)) %>%
     # Calculate service hours for every trip
     # A conditional statement is used for those trips that start before midnight and end after it
-    mutate(service_hr =  ifelse(start_time_str <  end_time_str,
-                                difftime(end_time_str, start_time_str, unit = 'hours'),
-                                difftime(end_time_str, start_time_str, unit = 'hours') + 24) ,
-           # Define period of day based on the second after midnight the trip starts
-           #adding in an early AM period so that the XNT calcs look less insane
-           period = case_when(between(seconds_after_midnight, 0, 17999)  ~ "0.AAM" ,
+    dplyr::mutate(
+      service_hr = ifelse(
+        start_time_str < end_time_str,
+        difftime(end_time_str, start_time_str, unit = 'hours'),
+        difftime(end_time_str, start_time_str, unit = 'hours') + 24
+      ),
+      # Define period of day based on the second after midnight the trip starts
+      #adding in an early AM period so that the XNT calcs look less insane
+      period = case_when(
+        between(seconds_after_midnight, 0, 17999) ~ "0.AAM",
 
-                              #shifting the AM start period to be 4:30 AM so that trips scheduled right before 5 AM aren't messing
-                              #with overnight service calcs.
-                              between(seconds_after_midnight, 18000, 32399 ) ~ "1.AM",
-                              between(seconds_after_midnight, 32400, 53999) ~ "2.MID",
-                              between(seconds_after_midnight, 54000,  68399 ) ~ "3.PM",
-                              between(seconds_after_midnight, 68400, 79199 ) ~ "4.XEV",
-                              between(seconds_after_midnight, 79200, 86399 ) ~ "5.XNT",
-                              #XNT bumped to top
-                              between(seconds_after_midnight, 86400, 108000 )~ "6.OWL",
-                              .default = ""))  %>%
-
+        #shifting the AM start period to be 4:30 AM so that trips scheduled right before 5 AM aren't messing
+        #with overnight service calcs.
+        between(seconds_after_midnight, 18000, 32399) ~ "1.AM",
+        between(seconds_after_midnight, 32400, 53999) ~ "2.MID",
+        between(seconds_after_midnight, 54000, 68399) ~ "3.PM",
+        between(seconds_after_midnight, 68400, 79199) ~ "4.XEV",
+        between(seconds_after_midnight, 79200, 86399) ~ "5.XNT",
+        #XNT bumped to top
+        between(seconds_after_midnight, 86400, 108000) ~ "6.OWL",
+        .default = ""
+      )
+    ) %>%
 
     # Sort dataframe, the relevant variable is start time of the trip
     # Note that we use the string start time, to ensure that a trip starting at 25:00:00
     # is sorted at the end of the day an not earlier as a 01:00:00 trip
     #not grouping by period here to make it easier to calculate the headways at/near period boundaries
-    group_by(across(all_of(c('route_id', 'direction_id', period_toggle)))) %>% # keep direction_id group by so that headways are measured within directional trips
-    arrange(route_id, direction_id, start_time_str) %>%
+    dplyr::group_by(across(all_of(c(
+      'route_id',
+      'direction_id',
+      period_toggle
+    )))) %>% # keep direction_id group by so that headways are measured within directional trips
+    dplyr::arrange(route_id, direction_id, start_time_str) %>%
 
     # For every corridor calculate the start time of the first trip and the
     # starting time of the last trip
-    mutate(start_next_trip = lead(start_time_str)) %>%
-    mutate(time_to_next_trip = start_next_trip- start_time_str) %>%
+    dplyr::mutate(start_next_trip = lead(start_time_str)) %>%
+    dplyr::mutate(time_to_next_trip = start_next_trip - start_time_str) %>%
     # round headway to nearest clockface headway value from the clockface_headway_set by
     # calculating the value with the minimum absolute difference between headway value and values from clockface_headway_set
-    mutate(clockface_headway = as.numeric(sapply(time_to_next_trip / 60, function(x) clockface_headway_set[which.min(abs(clockface_headway_set - x))]))) %>%
-    #filtering out trips that have  multiple trips scheduled due to short turn variants that are less than 4 minutes apart.
-    filter(time_to_next_trip > 240 ) %>%
+    dplyr::mutate(
+      clockface_headway = as.numeric(sapply(
+        time_to_next_trip / 60,
+        function(x) {
+          clockface_headway_set[which.min(abs(clockface_headway_set - x))]
+        }
+      ))
+    ) %>%
+    #dplyr::filtering out trips that have  multiple trips scheduled due to short turn variants that are less than 4 minutes apart.
+    dplyr::filter(time_to_next_trip > 240) %>%
 
-    group_by(across(all_of(c('route_id', direction_toggle, period_toggle)))) %>% # group by direction_id and period can be toggled
-    summarise(max_headway = max(time_to_next_trip),
-              min_headway = min(time_to_next_trip),
-              #adding mean headway based on time to next trip calc 2022.12.21
-              mean_headway = mean(time_to_next_trip),
-              max_clockface_headway = max(clockface_headway),
-              min_clockface_headway = min(clockface_headway)) %>%
+    dplyr::group_by(across(all_of(c(
+      'route_id',
+      direction_toggle,
+      period_toggle
+    )))) %>% # group by direction_id and period can be toggled
+    dplyr::summarise(
+      max_headway = max(time_to_next_trip),
+      min_headway = min(time_to_next_trip),
+      #adding mean headway based on time to next trip calc 2022.12.21
+      mean_headway = mean(time_to_next_trip),
+      max_clockface_headway = max(clockface_headway),
+      min_clockface_headway = min(clockface_headway)
+    ) %>%
     #convert to minutes
 
-    mutate(max_headway =as.numeric(max_headway)/60,
-           min_headway =as.numeric(min_headway)/60,
-           mean_headway = round(as.numeric((mean_headway)/60),2)) %>%
+    dplyr::mutate(
+      max_headway = as.numeric(max_headway) / 60,
+      min_headway = as.numeric(min_headway) / 60,
+      mean_headway = round(as.numeric((mean_headway) / 60), 2)
+    ) %>%
 
     # summarise(max_headway = max(max_headway),
     #           min_headway = min(min_headway)) %>%
-    mutate(headway_range = paste(min_headway, max_headway, sep= "-"),
-           clockface_headway_range = ifelse(max_clockface_headway == min_clockface_headway, as.character(max_clockface_headway), paste(min_clockface_headway, max_clockface_headway, sep = "-")))
+    dplyr::mutate(
+      headway_range = paste(min_headway, max_headway, sep = "-"),
+      clockface_headway_range = ifelse(
+        max_clockface_headway == min_clockface_headway,
+        as.character(max_clockface_headway),
+        paste(min_clockface_headway, max_clockface_headway, sep = "-")
+      )
+    )
 
   #average headways#####
 
-  trips_wkd <- left_join(trips_wkd, stop_times) %>%
-    select(-service_id) %>%
-    filter(!(is.na(start_time_str) | is.na(end_time_str) )) %>%
+  trips_wkd <- dplyr::left_join(trips_wkd, stop_times) %>%
+    dplyr::select(-service_id) %>%
+    dplyr::filter(!(is.na(start_time_str) | is.na(end_time_str))) %>%
     # Remove potential duplicates to avoid errors in the calculations
-    distinct(., route_id, trip_id, direction_id, start_time_str, .keep_all = TRUE)
+    dplyr::distinct(
+      .,
+      route_id,
+      trip_id,
+      direction_id,
+      start_time_str,
+      .keep_all = TRUE
+    )
 
   trips_wkd <- trips_wkd %>%
     # Extract only the hour integer from the character time and set it as numeric
     #2023.01.20 Changing this to use the str_split hour. Times over 24 are getting coded as zero.
-    mutate(hour =  as.numeric(V1) )%>%   #lubridate::hour(start_time_str)) %>%
+    dplyr::mutate(hour = as.numeric(V1)) %>% #lubridate::hour(start_time_str)) %>%
     # Calculate service hours for every trip
     # A conditional statement is used for those trips that start before midnight and end after it
-    mutate(service_hr = ifelse(start_time_str <  end_time_str,
-                               difftime(end_time_str, start_time_str, unit = 'hours'),
-                               difftime(end_time_str, start_time_str, unit = 'hours') + 24),
-           # Define period of day based on the integer hour the trip starts
+    dplyr::mutate(
+      service_hr = ifelse(
+        start_time_str < end_time_str,
+        difftime(end_time_str, start_time_str, unit = 'hours'),
+        difftime(end_time_str, start_time_str, unit = 'hours') + 24
+      ),
+      # Define period of day based on the integer hour the trip starts
 
-           # Define period of day based on the second after midnight the trip starts
-           #adding in an early AM period so that the XNT calcs look less insane
-           period = case_when(between(seconds_after_midnight, 0, 17999)  ~ "0.AAM" ,
+      # Define period of day based on the second after midnight the trip starts
+      #adding in an early AM period so that the XNT calcs look less insane
+      period = case_when(
+        between(seconds_after_midnight, 0, 17999) ~ "0.AAM",
 
-                              #shifting the AM start period to be 4:40 AM so that trips scheduled right before 5 AM aren't messing
-                              #with overnight service calcs.
-                              between(seconds_after_midnight, 18000, 32399 ) ~ "1.AM",
-                              between(seconds_after_midnight, 32400, 53999) ~ "2.MID",
-                              between(seconds_after_midnight, 54000,  68399 ) ~ "3.PM",
-                              between(seconds_after_midnight, 68400, 79199 ) ~ "4.XEV",
-                              between(seconds_after_midnight, 79200, 86399 ) ~ "5.XNT",
-                              #XNT bumped to top
-                              between(seconds_after_midnight, 86400, 108000 )~ "6.OWL",
-                              .default = ""))  %>%
+        #shifting the AM start period to be 4:40 AM so that trips scheduled right before 5 AM aren't messing
+        #with overnight service calcs.
+        between(seconds_after_midnight, 18000, 32399) ~ "1.AM",
+        between(seconds_after_midnight, 32400, 53999) ~ "2.MID",
+        between(seconds_after_midnight, 54000, 68399) ~ "3.PM",
+        between(seconds_after_midnight, 68400, 79199) ~ "4.XEV",
+        between(seconds_after_midnight, 79200, 86399) ~ "5.XNT",
+        #XNT bumped to top
+        between(seconds_after_midnight, 86400, 108000) ~ "6.OWL",
+        .default = ""
+      )
+    ) %>%
     # Sort dataframe, the relevant variable is start time of the trip
     # Note that we use the string start time, to ensure that a trip starting at 25:00:00
     # is sorted at the end of the day an not earlier as a 01:00:00 trip
     # If direction is not toggled, direction is ignored when calculating span
-    arrange(across(all_of(c('route_id', direction_toggle, 'start_time_str')))) %>%
-    group_by(across(all_of(c('route_id', direction_toggle, period_toggle)))) %>% # group by direction_id and period can be toggled
+    dplyr::arrange(across(all_of(c(
+      'route_id',
+      direction_toggle,
+      'start_time_str'
+    )))) %>%
+    dplyr::group_by(across(all_of(c(
+      'route_id',
+      direction_toggle,
+      period_toggle
+    )))) %>% # group by direction_id and period can be toggled
     # For every corridor calculate the start time of the first trip and the
     # starting time of the last trip
-    mutate(start_first_trip_period = first(hour),
-           start_last_trip_period = last(hour),
-           #this is calculating the total hours in the period served by the route. I added a one hour period
-           #to solve the issue of both trips in a period starting in the same hour
+    dplyr::mutate(
+      start_first_trip_period = first(hour),
+      start_last_trip_period = last(hour),
+      #this is calculating the total hours in the period served by the route. I added a one hour period
+      #to solve the issue of both trips in a period starting in the same hour
 
-           period_length = start_last_trip_period - start_first_trip_period+1) %>%
-    ungroup() %>%
-    group_by(across(all_of(c('route_id', direction_toggle)))) %>%  # group by direction_id can be toggled
+      period_length = start_last_trip_period - start_first_trip_period + 1
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(across(all_of(c('route_id', direction_toggle)))) %>% # group by direction_id can be toggled
 
     # Calculate the start of first trip and end of last trip in numeric hours
     # (this has the hours as integer and the minutes and seconds in decimals)
 
-    mutate(first = as.difftime(first(start_time_str), format = '%H:%M:%S', units = 'hours'),
-           last = as.difftime(last(start_time_str), format = '%H:%M:%S', units = 'hours')) %>%
+    dplyr::mutate(
+      first = as.difftime(
+        first(start_time_str),
+        format = '%H:%M:%S',
+        units = 'hours'
+      ),
+      last = as.difftime(
+        last(start_time_str),
+        format = '%H:%M:%S',
+        units = 'hours'
+      )
+    ) %>%
     # Compute the span of service for all day for every corridor
 
-    mutate(span_gtfs_hrs = ifelse(first <  last,
-                                  last - first,
-                                  last - first + (24*60*60))) %>%
-    mutate(span_gtfs_hrs = hms::hms(seconds = span_gtfs_hrs))
+    dplyr::mutate(
+      span_gtfs_hrs = ifelse(
+        first < last,
+        last - first,
+        last - first + (24 * 60 * 60)
+      )
+    ) %>%
+    dplyr::mutate(span_gtfs_hrs = hms::hms(seconds = span_gtfs_hrs))
 
   # Calculate how many hours before 5am a trip starts (Upper)
   # Calulate how many hours after 7pm (19:00) a trip starts (Lower)
@@ -338,74 +484,107 @@ create_trips_table <- function(gtfs, netplan_gtfs = TRUE, reference_date = NULL,
 
   # Aggregate dataframe by corridor and period
 
-
   first_last_trips <- trips_wkd %>%
-    group_by(across(all_of(c('route_id', direction_toggle)))) %>% # group by direction_id can be toggled
-    arrange(start_time_str, by_group = TRUE) %>%
-    mutate(first_trip =  first(start_time_str),
-           #trying to find the latest instance of a bus serving a stop
-           #20222.01.19 Changing this to first stop of last trip based on feedback from LLink team
-           last_trip = last(start_time_str)) %>%
-    select(all_of(c('route_id', direction_toggle, 'first_trip', 'last_trip'))) %>% # include direction_id can be toggled
-    distinct()
-
-
+    dplyr::group_by(across(all_of(c('route_id', direction_toggle)))) %>% # group by direction_id can be toggled
+    dplyr::arrange(start_time_str, by_group = TRUE) %>%
+    dplyr::mutate(
+      first_trip = first(start_time_str),
+      #trying to find the latest instance of a bus serving a stop
+      #20222.01.19 Changing this to first stop of last trip based on feedback from LLink team
+      last_trip = last(start_time_str)
+    ) %>%
+    dplyr::select(all_of(c(
+      'route_id',
+      direction_toggle,
+      'first_trip',
+      'last_trip'
+    ))) %>% # include direction_id can be toggled
+    dplyr::distinct()
 
   route_wkd <- trips_wkd %>%
-    group_by(across(all_of(c('route_id', period_toggle, 'period_length', 'span_gtfs_hrs', direction_toggle))  #trip_headsign, direction_id,
+    dplyr::group_by(dplyr::across(
+      all_of(c(
+        'route_id',
+        period_toggle,
+        'period_length',
+        'span_gtfs_hrs',
+        direction_toggle
+      )) #trip_headsign, direction_id,
     )) %>% # group by direction_id can be toggled
     # Calculate trips in period and service hours in period and whether a route is bidirectional or not (this matters when calculating avg_headway_mins)
-    summarise(num_trips = n(),
-              num_direction = length(unique(direction_id)),
-              .groups = 'drop')
+    dplyr::summarise(
+      num_trips = n(),
+      num_direction = length(unique(direction_id)),
+      .groups = 'drop'
+    )
 
   # all day service metrics ####
   # Populated if by_period is set to TRUE. Returns empty data frame if by_period is set to FALSE.
   # Don't need all_day_service calculations when function is already summarizing for all_day when by_period is set to FALSE.
   all_day_service <- route_wkd %>%
-    # If period column exists, applies filter below to the period column.
-    # If period column is missing, applies filter below to the period_length column, which returns an empty data frame.
-    # The matches function will pick the first column that contains period and applies the filter to that column.
+    # If period column exists, applies dplyr::filter below to the period column.
+    # If period column is missing, applies dplyr::filter below to the period_length column, which returns an empty data frame.
+    # The matches function will pick the first column that contains period and applies the dplyr::filter to that column.
     # Replacing matches with any_of returns full data frame instead of an empty data frame.
-    filter(if_any(matches('period'), ~.x %in% c("1.AM" , "2.MID"  , "3.PM" , "4.XEV"))) %>%
-    group_by(across(all_of(c('route_id', direction_toggle, 'num_direction')))) %>% # group by direction_id can be toggled
-    summarise(num_trips = sum(num_trips, na.rm = T)) %>%
-    mutate(avg_headway_mins = round(16*60/num_trips*num_direction, 0)) %>%
-    mutate(period = "7.main") %>%
-    ungroup() %>%
-    group_by(across(all_of(c('route_id', direction_toggle, period_toggle)))) %>% # group by direction_id can be toggled
+    dplyr::filter(dplyr::if_any(
+      matches('period'),
+      ~ .x %in% c("1.AM", "2.MID", "3.PM", "4.XEV")
+    )) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(
+      'route_id',
+      direction_toggle,
+      'num_direction'
+    )))) %>% # group by direction_id can be toggled
+    dplyr::summarise(num_trips = sum(num_trips, na.rm = T)) %>%
+    dplyr::mutate(
+      avg_headway_mins = round(16 * 60 / num_trips * num_direction, 0)
+    ) %>%
+    dplyr::mutate(period = "7.main") %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(
+      'route_id',
+      direction_toggle,
+      period_toggle
+    )))) %>% # group by direction_id can be toggled
     # 2022.03.29 added this line of code to calculate route-level avg headway by direction
-    summarize(avg_headway_mins = mean(avg_headway_mins, na.rm = T),
-              num_trips = sum(num_trips, na.rm = T))
+    dplyr::summarize(
+      avg_headway_mins = mean(avg_headway_mins, na.rm = T),
+      num_trips = sum(num_trips, na.rm = T)
+    )
   #divided by two because original dataset is bidirectional, don't want to double count span
-
-
-
 
   # Calculate service hour per trip and adjust minutes of operation in period based on the
   # adjustment values calculated earlier
   # Calcualte average headways based on GTFS processed data
   #period summary ####
   period_summary <- route_wkd %>%
-    mutate(avg_headway_mins = round(period_length*60/num_trips*num_direction, 0)) %>%
-    ungroup() %>%
-    group_by(across(all_of(c('route_id', direction_toggle, period_toggle, 'span_gtfs_hrs')))) %>% # group by direction_id can be toggled
+    dplyr::mutate(
+      avg_headway_mins = round(
+        period_length * 60 / num_trips * num_direction,
+        0
+      )
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(
+      'route_id',
+      direction_toggle,
+      period_toggle,
+      'span_gtfs_hrs'
+    )))) %>% # group by direction_id can be toggled
     # 2022.03.29 added this line of code to calculate route-level avg headway by direction
-    summarize(avg_headway_mins = mean(avg_headway_mins, na.rm = T),
-              num_trips = sum(num_trips, na.rm = T)) %>%
-    bind_rows(all_day_service)
+    dplyr::summarize(
+      avg_headway_mins = mean(avg_headway_mins, na.rm = T),
+      num_trips = sum(num_trips, na.rm = T)
+    ) %>%
+    dplyr::bind_rows(all_day_service)
 
   #output df ####
   weekday_trips <- kcm$routes %>%
 
-    select(route_id, route_short_name ) %>%
+    dplyr::select(route_id, route_short_name) %>%
 
-    left_join(period_summary) %>%
-    left_join(first_last_trips) %>%
-    left_join(headway_range) %>%
-    mutate(day_type = day_type ,
-           network = network)
+    dplyr::left_join(period_summary) %>%
+    dplyr::left_join(first_last_trips) %>%
+    dplyr::left_join(headway_range) %>%
+    dplyr::mutate(day_type = day_type, network = network)
 }
-
-
-
