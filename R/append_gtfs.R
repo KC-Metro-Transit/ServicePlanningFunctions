@@ -288,13 +288,25 @@ append_gtfs <- function(
     ))
   }
 
+  # Remove records from trips that will not be appended
+  baseline$calendar <- dplyr::filter(
+    baseline$calendar,
+    service_id %in% baseline$trips$service_id
+  )
+
   baseline$stop_times <- dplyr::filter(
     baseline$stop_times,
     trip_id %in% baseline$trips$trip_id
   )
+
   baseline$shapes <- dplyr::filter(
     baseline$shapes,
     shape_id %in% baseline$trips$shape_id
+  )
+
+  baseline$stops <- dplyr::filter(
+    baseline$stops,
+    stop_id %in% baseline$stop_times$stop_id
   )
 
   appended_gtfs <- flatten(list(baseline, proposed))
@@ -308,7 +320,7 @@ append_gtfs <- function(
 
   calendar <- appended_gtfs[stringr::str_detect(
     names(appended_gtfs),
-    "calendar"
+    "\\bcalendar\\b"
   )] %>%
     dplyr::bind_rows() %>%
     dplyr::distinct() %>%
