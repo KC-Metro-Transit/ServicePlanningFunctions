@@ -331,7 +331,7 @@ append_gtfs <- function(
 
   calendar_csv <- appended_gtfs[stringr::str_detect(
     names(appended_gtfs),
-    "calendar"
+    "\\bcalendar\\b"
   )] %>%
     dplyr::bind_rows() %>%
     dplyr::distinct()
