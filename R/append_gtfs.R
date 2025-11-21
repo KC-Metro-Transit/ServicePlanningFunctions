@@ -231,12 +231,63 @@ append_gtfs <- function(
   # Filter Baseline Trips table to later append to proposed network
   # Removes deleted routes
   # Removes route and day type combinations already found in proposed network
+
+  # List of routes that will not be appended
+  deleted_from_baseline <- sort(unique(
+    baseline$trips[
+      baseline$trips$route_id %in% deleted_routes,
+    ]$route_id
+  ))
+
   baseline$trips <- dplyr::filter(
     baseline$trips,
     !route_id %in% deleted_routes &
       !route_day_key %in% proposed$trips$route_day_key
-  ) %>%
-    dplyr::select(-route_day_key)
+  )
+
+  # List of routes that will be appended for missing day types
+  # (Assumes trips for specific day types were not in the proposed network because there is no change proposed)
+  append_missing_day_type <- sort(unique(
+    baseline$trips[
+      baseline$trips$route_id %in% proposed$route$route_id,
+    ]$route_day_key
+  ))
+
+  # List of routes that will be appended for all day types
+  append_missing_routes <- sort(unique(
+    baseline$trips[
+      !baseline$trips$route_day_key %in% append_missing_day_type,
+    ]$route_id
+  ))
+
+  if (length(append_missing_routes) > 0) {
+    cli::cli_inform(paste0(
+      "The following routes have been appended to the proposed network: ",
+      toString(sort(as.numeric(append_missing_routes[str_detect(
+        append_missing_routes,
+        "\\b\\d+\\b"
+      )]))),
+      ", ",
+      toString(append_missing_routes[
+        !str_detect(append_missing_routes, "\\b\\d+\\b")
+      ])
+    ))
+  }
+
+  if (length(append_missing_day_type) > 0) {
+    cli::cli_inform(paste0(
+      "The following routes have been appended with missing day types: ",
+      toString(append_missing_day_type)
+    ))
+  }
+
+  if (length(deleted_from_baseline) > 0) {
+    cli::cli_inform(paste0(
+      "The following routes are not appended since they are deleted: ",
+      toString(deleted_from_baseline)
+    ))
+  }
+
   baseline$stop_times <- dplyr::filter(
     baseline$stop_times,
     trip_id %in% baseline$trips$trip_id
@@ -290,6 +341,7 @@ append_gtfs <- function(
 
   trips <- appended_gtfs[stringr::str_detect(names(appended_gtfs), "trips")] %>%
     dplyr::bind_rows() %>%
+    dplyr::select(-route_day_key) %>%
     dplyr::distinct()
 
   stops <- appended_gtfs[stringr::str_detect(names(appended_gtfs), "stops")] %>%
