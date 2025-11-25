@@ -139,11 +139,21 @@ combine_interagency_gtfs <- function(
           "stop_times"
         )
 
-        # Add agency id to trips table
+        # Add agency id to trips and calendar table
         weekday$trips <- weekday$trips %>%
           dplyr::left_join(
             select(weekday$routes, agency_id, route_id),
             by = "route_id"
+          )
+
+        weekday$calendar <- weekday$calendar %>%
+          dplyr::left_join(
+            dplyr::distinct(dplyr::select(
+              weekday$trips,
+              service_id,
+              agency_id
+            )),
+            by = "service_id"
           )
 
         gtfs_list[[i]] <- weekday
@@ -166,13 +176,38 @@ combine_interagency_gtfs <- function(
     "calendar$"
   )] %>%
     dplyr::bind_rows() %>%
-    dplyr::distinct()
+    dplyr::distinct(service_id, .keep_all = T)
+
+  # Check if all service ids overlap each other
+  # Get service date range for King County Metro (It should be the same across all service changes if generated with combine_gtfs/append_gtfs)
+  kcm_date_range <- calendar %>%
+    dplyr::filter(agency_id == 'King County  Metro Transit') %>%
+    dplyr::mutate(date_range = interval(start_date, end_date)) %>%
+    distinct(date_range)
+
+  calendar_check <- calendar %>%
+    dplyr::mutate(
+      overlap_flag = int_overlaps(
+        interval(ymd(start_date), ymd(end_date)),
+        kcm_date_range$date_range
+      )
+    )
+
+  if (all(calendar_check$overlap_flag)) {
+    calendar <- calendar %>%
+      dplyr::select(-agency_id)
+  } else {
+    cli::cli_abort(
+      "Service Date Range from other agency's GTFS does not overlap with King County Metro's Service Date Range. Check to see if all GTFS files are from the same service change."
+    )
+  }
 
   calendar_csv <- baseline_gtfs[stringr::str_detect(
     names(baseline_gtfs),
     "calendar$"
   )] %>%
     dplyr::bind_rows() %>%
+    dplyr::select(-agency_id) %>%
     dplyr::distinct()
 
   calendar_dates <- baseline_gtfs[stringr::str_detect(
