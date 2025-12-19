@@ -24,6 +24,14 @@ You can install the development version of ServicePlanningFunctions from
 devtools::install_github("KC-Metro-Transit/ServicePlanningFunctions")
 ```
 
+## Updating
+
+You can update to the latest version of ServicePlanningFunctions with:
+
+``` r
+update_ServicePlanningFunctions()
+```
+
 ## save_objects() Example
 
 save_objects() is designed to work with the purrr package to iterate
@@ -146,6 +154,35 @@ another polygon. Results in a “donut” polygon.
 # Polygon with smaller area removed
  clipped_polygon <- st_erase(big_box, polygon_to_remove)
  plot(st_geometry(clipped_polygon))
+```
+
+## style_kcm() & style_kcm_flip() Examples
+
+These functions can be added to ggplot code to apply a custom theme
+based on KCM’s style guide used by Service Planning. *style_kcm()*
+displays axis lines along the x-axis and *style_kcm()* displays axis
+lines along the y-axis.
+
+``` r
+ggplot(...) +
+  ... +
+  style_kcm()
+```
+
+## style_kcm_colors_default() & style_kcm_colors() Examples
+
+These functions can be added to ggplot code to apply a custom color
+palette based on KCM’s style guide used by Service Planning. This should
+be used with *style_kcm()* and *style_kcm_flip()*.
+*style_kcm_colors_default()* applies the default 6 colors scheme.
+*style_kcm_colors()* will apply appropriate colors if it recognizes
+common values like Day Type and Period.
+
+``` r
+ggplot(...) +
+  ... +
+  style_kcm() +
+  style_kcm_colors()
 ```
 
 ## count_trips_by_geography() Example

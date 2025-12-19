@@ -16,14 +16,6 @@ style_kcm_colors <- function() {
     "Saturday" = "#31859F",
     "Sunday" = "#006633",
 
-    # Period
-    "AM" = "#31859F",
-    "MID" = "#FF7B21",
-    "PM" = "#390854",
-    "XEV" = "#FDB71A",
-    "XNT" = "#006633",
-    "OWL" = "#FFE089",
-
     # Productivity Period
     "Peak" = "#FDB71A",
     "Off-Peak" = "#006633",
