@@ -6,7 +6,12 @@
 #'
 #' @export
 #' @examples
+#' ggplot(mtcars, aes(x = factor(cyl), y = wt, color = factor(cyl))) +
+#' geom_boxplot() +
+#' facet_grid(. ~ gear) +
+#' style_kcm_flip()
 style_kcm_flip <- function(textsize = NULL) {
+  # Download inter font if not installed already
   if (!"inter" %in% sysfonts::font_families()) {
     sysfonts::font_add_google("inter", "inter")
   }
@@ -14,6 +19,7 @@ style_kcm_flip <- function(textsize = NULL) {
 
   font <- 'inter'
 
+  # Declare font size based on textsize parameter
   if (is.null(textsize)) {
     font_size <- 16
     title_size <- 20
@@ -26,7 +32,9 @@ style_kcm_flip <- function(textsize = NULL) {
     legend_size <- 27
   }
 
+  # Generate Theme
   list(ggplot2::theme(
+    # Text, title, subtitle and caption fonts
     text = element_text(size = font_size, family = font),
     plot.title = ggplot2::element_text(
       size = title_size,
@@ -46,9 +54,11 @@ style_kcm_flip <- function(textsize = NULL) {
       color = "#585860"
     ),
 
+    # Title and caption position
     plot.title.position = "plot",
     plot.caption.position = "plot",
 
+    # Legend
     legend.position = 'top',
     legend.text.align = 0,
     legend.background = ggplot2::element_blank(),
@@ -58,6 +68,7 @@ style_kcm_flip <- function(textsize = NULL) {
     legend.key = ggplot2::element_blank(),
     legend.text = ggplot2::element_text(family = font, size = legend_size),
 
+    # Axes
     axis.title = ggplot2::element_blank(),
     axis.text = ggplot2::element_text(
       size = font_size,
@@ -71,6 +82,7 @@ style_kcm_flip <- function(textsize = NULL) {
       color = "black"
     ),
 
+    # Facet Lines
     panel.grid.minor = ggplot2::element_blank(),
     panel.grid.major.x = ggplot2::element_line(
       color = '#585860',
@@ -84,6 +96,7 @@ style_kcm_flip <- function(textsize = NULL) {
 
     panel.spacing.y = unit(1.5, "line"),
 
+    # Other
     strip.background = ggplot2::element_rect(fill = 'white'),
     strip.text = ggplot2::element_text(
       size = title_size,

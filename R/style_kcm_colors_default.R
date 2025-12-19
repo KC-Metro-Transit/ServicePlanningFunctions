@@ -4,6 +4,11 @@
 #'
 #' @export
 #' @examples
+#' ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
+#' geom_boxplot() +
+#' facet_grid(. ~ gear) +
+#' style_kcm() +
+#' style_kcm_colors()
 style_kcm_colors_default <- function() {
   kcm_colors_list <- c(
     "#FDB71A",
