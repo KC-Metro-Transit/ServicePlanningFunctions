@@ -139,7 +139,7 @@ A helper function for remove_water() that clips a polygon out from another polyg
 
 ## style_kcm() & style_kcm_flip() Examples
 
-These functions can be added to ggplot code to apply a custom theme based on KCM's style guide used by Service Planning. *style_kcm()* displays axis lines along the x-axis and *style_kcm()* displays axis lines along the y-axis.
+These functions can be added to ggplot code to apply a custom theme based on KCM's style guide used by Service Planning. *style_kcm()* displays axis lines along the y-axis and *style_kcm_flip()* displays axis lines along the x-axis.
 
 ```{r example_style_kcm, eval = F}
 ggplot(...) +

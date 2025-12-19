@@ -160,8 +160,8 @@ another polygon. Results in a “donut” polygon.
 
 These functions can be added to ggplot code to apply a custom theme
 based on KCM’s style guide used by Service Planning. *style_kcm()*
-displays axis lines along the x-axis and *style_kcm()* displays axis
-lines along the y-axis.
+displays axis lines along the y-axis and *style_kcm_flip()* displays
+axis lines along the x-axis.
 
 ``` r
 ggplot(...) +
