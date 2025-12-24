@@ -99,5 +99,6 @@ SELECT [SERVICE_CHANGE_NUM]
       )
     ) %>%
     clean_service_rte_name(as.character(route)) %>%
+    rename(Route = clean_route) %>%
     select(-c(min, yr, season, year))
 }
