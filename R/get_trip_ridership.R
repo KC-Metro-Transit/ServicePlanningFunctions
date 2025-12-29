@@ -50,7 +50,7 @@ SELECT [SERVICE_CHANGE_NUM]
     )
   ) %>%
     janitor::clean_names() %>%
-    mutate(
+    dplyr::mutate(
       period = case_when(
         trip_time >= 300 & trip_time < 540 ~ 'AM Peak',
         trip_time >= 540 & trip_time < 900 ~ 'Midday',
@@ -65,16 +65,16 @@ SELECT [SERVICE_CHANGE_NUM]
         day_code == 2 ~ 'Sunday'
       )
     ) %>%
-    separate_wider_delim(
+    tidyr::separate_wider_delim(
       hour,
       delim = ".",
       names = c("hour", "min"),
       too_few = "align_start"
     ) %>%
-    mutate(hour = as.integer(hour)) %>%
+    dplyr::mutate(hour = as.integer(hour)) %>%
     filter(route != 907) %>%
     # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
-    mutate(
+    dplyr::mutate(
       yr = str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
       season_num = str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
       # Convert Season Digit to Text
@@ -99,6 +99,6 @@ SELECT [SERVICE_CHANGE_NUM]
       )
     ) %>%
     clean_service_rte_name(as.character(route)) %>%
-    rename(Route = clean_route) %>%
-    select(-c(min, yr, season, year))
+    dplyr::rename(Route = clean_route) %>%
+    dplyr::select(-c(min, yr, season, year))
 }
