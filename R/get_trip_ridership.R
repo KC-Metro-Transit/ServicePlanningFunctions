@@ -51,12 +51,15 @@ SELECT [SERVICE_CHANGE_NUM]
   ) %>%
     janitor::clean_names() %>%
     dplyr::mutate(
-      period = case_when(
-        trip_time >= 300 & trip_time < 540 ~ 'AM Peak',
-        trip_time >= 540 & trip_time < 900 ~ 'Midday',
-        trip_time >= 900 & trip_time < 1140 ~ 'PM Peak',
-        trip_time >= 1140 & trip_time < 1320 ~ 'Evening',
-        TRUE ~ 'Night'
+      period = factor(
+        case_when(
+          trip_time >= 300 & trip_time < 540 ~ 'AM Peak',
+          trip_time >= 540 & trip_time < 900 ~ 'Midday',
+          trip_time >= 900 & trip_time < 1140 ~ 'PM Peak',
+          trip_time >= 1140 & trip_time < 1320 ~ 'Evening',
+          TRUE ~ 'Night'
+        ),
+        levels = c("AM Peak", "Midday", "PM Peak", 'Evening', 'Night')
       ),
       hour = as.character(trip_time / 60),
       Day = case_when(
@@ -100,5 +103,5 @@ SELECT [SERVICE_CHANGE_NUM]
     ) %>%
     clean_service_rte_name(as.character(route)) %>%
     dplyr::rename(Route = clean_route) %>%
-    dplyr::select(-c(min, yr, season, year))
+    dplyr::select(-c(min, yr, season, year, season_num))
 }
