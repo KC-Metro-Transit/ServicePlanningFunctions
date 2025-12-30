@@ -103,5 +103,31 @@ AND SERVICE_RTE_NUM IN ({vals2*})
       too_few = "align_start"
     ) %>%
     dplyr::mutate(hour = as.integer(hour)) %>%
-    dplyr::select(-min)
+    dplyr::mutate(
+      yr = str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
+      season_num = str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
+      # Convert Season Digit to Text
+      season = case_match(
+        season_num,
+        "1" ~ "Spring",
+        "2" ~ "Summer",
+        "3" ~ "Fall"
+      ),
+      # Convert Year Digits to YYYY
+      year = case_when(
+        yr > 90 ~ str_c("19", yr), # 1991-1999
+        yr == "" ~ "2000", # 2000
+        yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
+        yr >= 10 ~ str_c("20", yr), # > 2010
+        TRUE ~ NA
+      ),
+      Day = factor(Day, levels = c("Weekday", "Saturday", "Sunday")),
+      Service = reorder(
+        paste(season, year),
+        as.numeric(str_c(year, season_num))
+      )
+    ) %>%
+    clean_service_rte_name(as.character(route)) %>%
+    dplyr::rename(Route = clean_route) %>%
+    dplyr::select(-c(min, yr, season, year, season_num))
 }
