@@ -45,7 +45,7 @@ style_kcm_colors <- function() {
     "DART/Shuttle" = "#4B2884",
     "ST" = "#264d5e",
     "Other" = "#784885",
-    "Entire Network" = "#FDB71A"
+    "System" = "#FDB71A"
   )
 
   list(
