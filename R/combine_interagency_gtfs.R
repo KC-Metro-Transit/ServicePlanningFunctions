@@ -183,7 +183,7 @@ combine_interagency_gtfs <- function(
   kcm_date_range <- calendar %>%
     dplyr::filter(agency_id == 'King County  Metro Transit') %>%
     dplyr::mutate(date_range = interval(start_date, end_date)) %>%
-    distinct(date_range)
+    dplyr::distinct(date_range)
 
   calendar_check <- calendar %>%
     dplyr::mutate(
