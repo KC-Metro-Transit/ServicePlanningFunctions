@@ -1,6 +1,6 @@
 #' Title
 #'
-#' @param textsize Specifies the font size to use. Defaults to default size. "markdown" to increase font size for pdf/png/jpeg exports.
+#' @param textsize Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.
 #'
 #' @returns
 #'
@@ -25,7 +25,7 @@ style_kcm <- function(textsize = NULL) {
     title_size <- 20
     subtitle_size <- 18
     legend_size <- 15
-  } else if (textsize == 'markdown') {
+  } else if (textsize == 'large') {
     font_size <- 28
     title_size <- 36
     subtitle_size <- 32

@@ -7,7 +7,7 @@
 style_kcm(textsize = NULL)
 }
 \arguments{
-\item{textsize}{Specifies the font size to use. Defaults to default size. "markdown" to increase font size for pdf/png/jpeg exports.}
+\item{textsize}{Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.}
 }
 \description{
 Title
