@@ -1,4 +1,4 @@
-#' Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()
+#' Generate plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_trip_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.

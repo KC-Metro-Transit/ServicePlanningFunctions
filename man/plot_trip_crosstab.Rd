@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_trip_crosstab.R
 \name{plot_trip_crosstab}
 \alias{plot_trip_crosstab}
-\title{Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()}
+\title{Generate plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()}
 \usage{
 plot_trip_crosstab(
   dataframe,
@@ -30,5 +30,5 @@ plot_trip_crosstab(
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
 }
 \description{
-Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()
+Generate plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
 }
