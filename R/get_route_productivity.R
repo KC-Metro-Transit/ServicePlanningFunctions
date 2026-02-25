@@ -1,3 +1,27 @@
+#' Get Route Productivity
+#'
+#' get_route_productivity() generates a dataframe of
+#' productivity metrics for both riders per platform hour and
+#' passenger miles per platform mile. This function allows the user
+#' to either return results for the whole system for a service change
+#' or return a subset of results. The subsets are evaluated against all
+#' routes before being returned. The function also supports both Metro
+#' productivity period analysis and day part level analysis. Multiple
+#' service changes are also supported.
+#'
+#' @param service_change Numeric. The three-digit identifier of the service change.
+#' Can accept multiple values as a vector.
+#' @param tbird_connection The connection object created by connect_to_tbird()
+#' @param period_type Character. Level of time aggregation. Options are "day_part_cd" or "service_guidelines".
+#' @param filter_routes T/F. Do you want to return results for the entire system or for a selection of routes.
+#' @param route Numeric. Required only if filter_routes == TRUE. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
+#' Can accept multiple values as a vector.
+#'
+#' @returns Dataframe of productivity metrics for specified routes, periods and service changes. Includes both riders per platform hour and
+#' passenger miles per platform mile.
+#'
+#' @export
+#' @examples
 get_route_productivity <- function(
   service_change,
   tbird_connection,
@@ -267,7 +291,7 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
       dplyr::bind_rows(day_thresholds) %>%
       dplyr::mutate(
         day_part_cd = dplyr::case_when(
-          is.na(day_part_cd) ~ 'Day',
+          is.na(day_part_cd) ~ 'DAY',
           TRUE ~ day_part_cd
         )
       )
