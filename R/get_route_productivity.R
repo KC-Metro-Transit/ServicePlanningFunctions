@@ -26,7 +26,7 @@ get_route_productivity <- function(
   service_change,
   tbird_connection,
   period_type,
-  filter_routes,
+  filter_routes = FALSE,
   route
 ) {
   route_classification <- DBI::dbGetQuery(
@@ -77,7 +77,7 @@ BUS_BASE_ID,
 BUS_TYPE_NUM), 
 
 t02 as ( SELECT mapped_trip_id,
-day_part_cd, 
+
 SERVICE_CHANGE_NUM, 
 SCHED_DAY_TYPE_CODED_NUM,
 count(case when trip_kind_cd not in('S') THEN 1 ELSE 0 END) as nonrevenue_trips,
@@ -90,7 +90,7 @@ AND MINOR_CHANGE_NUM = 0
  AND (service_rte_num <500 OR (service_rte_num > 670 
  and service_rte_num < 690))
 GROUP BY SERVICE_CHANGE_NUM,mapped_trip_id,
-day_part_cd,  SCHED_DAY_TYPE_CODED_NUM)
+ SCHED_DAY_TYPE_CODED_NUM)
 
 select t02.service_change_num,
 service_rte_num,
@@ -329,11 +329,11 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
       cli::cli_inform(message = "Returning all routes.")
       productivity
     } else {
-      cli::cli_inform(message = "Filtering by provided route list.")
+      cli::cli_inform(message = "Filtering by provided route list: {route}.")
       out <- productivity |>
         dplyr::filter(service_rte_num %in% route)
     }
-  } else {
+  } else if (period_type == "service_guidelines") {
     cli::cli_inform(
       message = "Grouping productivity results by Peak, Off-Peak, and Night definitions."
     )
@@ -427,9 +427,12 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
       cli::cli_inform(message = "Returning all routes.")
       productivity_period
     } else {
-      cli::cli_inform(message = "Filtering by provided route list.")
+      cli::cli_inform(message = "Filtering by provided route list: {route}")
       out <- productivity_period |>
         dplyr::filter(service_rte_num %in% route)
     }
+  } else{
+    cli::cli_abort(message = "Missing period_type parameter. Options are 'day_part_cd' or 'service_guidelines'.")
   }
 }
+
