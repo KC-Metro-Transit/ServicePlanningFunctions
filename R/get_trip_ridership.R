@@ -52,7 +52,7 @@ SELECT [SERVICE_CHANGE_NUM]
     janitor::clean_names() %>%
     dplyr::mutate(
       period = factor(
-        case_when(
+        dplyr::case_when(
           trip_time >= 300 & trip_time < 540 ~ 'AM Peak',
           trip_time >= 540 & trip_time < 900 ~ 'Midday',
           trip_time >= 900 & trip_time < 1140 ~ 'PM Peak',
@@ -62,7 +62,7 @@ SELECT [SERVICE_CHANGE_NUM]
         levels = c("AM Peak", "Midday", "PM Peak", 'Evening', 'Night')
       ),
       hour = as.character(trip_time / 60),
-      Day = case_when(
+      Day = dplyr::case_when(
         day_code == 0 ~ 'Weekday',
         day_code == 1 ~ 'Saturday',
         day_code == 2 ~ 'Sunday'
@@ -75,33 +75,33 @@ SELECT [SERVICE_CHANGE_NUM]
       too_few = "align_start"
     ) %>%
     dplyr::mutate(hour = as.integer(hour)) %>%
-    filter(route != 907) %>%
+    dplyr::filter(route != 907) %>%
     # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
     dplyr::mutate(
-      yr = str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
-      season_num = str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
+      yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
+      season_num = stringr::str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
       # Convert Season Digit to Text
-      season = case_match(
+      season = dplyr::case_match(
         season_num,
         "1" ~ "Spring",
         "2" ~ "Summer",
         "3" ~ "Fall"
       ),
       # Convert Year Digits to YYYY
-      year = case_when(
+      year = dplyr::case_when(
         yr > 90 ~ str_c("19", yr), # 1991-1999
         yr == "" ~ "2000", # 2000
         yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
         yr >= 10 ~ str_c("20", yr), # > 2010
         TRUE ~ NA
       ),
-      Day = factor(Day, levels = c("Weekday", "Saturday", "Sunday")),
-      Service = reorder(
+      day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
+      service = stats::reorder(
         paste(season, year),
         as.numeric(str_c(year, season_num))
       )
     ) %>%
-    clean_service_rte_name(as.character(route)) %>%
-    dplyr::rename(Route = clean_route) %>%
+    ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
+    dplyr::rename(route = clean_route) %>%
     dplyr::select(-c(min, yr, season, year, season_num))
 }
