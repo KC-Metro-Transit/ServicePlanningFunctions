@@ -7,8 +7,8 @@
 #'
 #' @returns
 #'
-#' @export
-#' @examples
+#' @export Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
+
 get_trip_ridership <- function(
   service_change_num,
   route,
