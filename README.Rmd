@@ -124,3 +124,14 @@ A helper function for remove_water() that clips a polygon out from another polyg
 ## count_trips_by_geography() Example
 
 Function takes a GTFS and a spatial dataset and counts unique trips at stops in each polygon. 
+
+## get_trip_productivity() Example
+
+get_route_productivity() generates a dataframe of productivity metrics for both riders per platform hour and passenger miles per platform mile. This function allows the user to either return results for the whole system for a service change or return a subset of results. The subsets are evaluated against all routes before being returned. The function also supports both Metro productivity period analysis and day part level analysis. Multiple service changes are also supported. NOTE: You can return results for the current service change, but the results will be calculated based on whatever data has been added to dp.vw_trip_productivity at the time of running. Figures may differ from the figures reported in the system evaluation.
+
+```{r example_get_trip_productivity, eval=F}
+con <- connect_to_tbird()
+
+productivity_df <- get_route_productivity(service_change = c(241, 243), tbird_connection = con, period_type = "day_part_cd", day = "Weekday", filter_routes = T, route = c(1,2,3,4,5) )
+
+```

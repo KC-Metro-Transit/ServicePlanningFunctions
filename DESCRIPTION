@@ -26,7 +26,8 @@ Imports:
     fs, 
     DBI, 
     janitor, 
-    glue
+    glue, 
+    tibble
 URL: https://github.com/melissa-gaughan/ServicePlanningFunctions
 BugReports: https://github.com/melissa-gaughan/ServicePlanningFunctions/issues
 Suggests: 

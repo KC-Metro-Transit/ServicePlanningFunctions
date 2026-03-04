@@ -13,6 +13,7 @@
 #' Can accept multiple values as a vector.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param period_type Character. Level of time aggregation. Options are "day_part_cd" or "service_guidelines".
+#' @param day Character. The day type name. Options are "Weekday", "Saturday", "Sunday". Can accept multiple values as a vector.
 #' @param filter_routes T/F. Do you want to return results for the entire system or for a selection of routes.
 #' @param route Numeric. Required only if filter_routes == TRUE. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
 #' Can accept multiple values as a vector.
@@ -21,14 +22,24 @@
 #' passenger miles per platform mile.
 #'
 #' @export
-#' @examples
+
 get_route_productivity <- function(
   service_change,
   tbird_connection,
   period_type,
+  day,
   filter_routes = FALSE,
   route
 ) {
+  day_codes <- tibble::tibble(day, column_name = "day") |>
+    dplyr::mutate(
+      sched_day_type_coded_num = dplyr::case_when(
+        day == 'Weekday' ~ 0,
+        day == 'Saturday' ~ 1,
+        day == 'Sunday' ~ 2
+      )
+    )
+
   route_classification <- DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
@@ -50,78 +61,27 @@ get_route_productivity <- function(
   all_trips <- DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
-      " with t01 as(
-select service_change_num,
-service_rte_num,
-mapped_trip_id,
-day_part_cd,
-SCHED_DAY_TYPE_CODED_NUM,
-BUS_BASE_ID, 
-BUS_TYPE_NUM,
-count(case when trip_kind_cd in('S') THEN 1 ELSE 0 END) as revenue_trips,
-sum(trip_miles) as revenue_miles,
-sum(trip_duration_mnts) as revenue_minutes
-FROM DP.ALL_TRIPS
-WHERE SERVICE_CHANGE_NUM in ({vals1*})
-AND WORKING_LOAD_STATUS = 'FINAL'
-AND MINOR_CHANGE_NUM = 0
-AND TRIP_KIND_CD = 'S'
-AND (service_rte_num <500 OR (service_rte_num > 670 
-and service_rte_num < 690))
-GROUP BY service_change_num, 
-service_rte_num,
-mapped_trip_id,
-day_part_cd,
-SCHED_DAY_TYPE_CODED_NUM,
-BUS_BASE_ID, 
-BUS_TYPE_NUM), 
-
-t02 as ( SELECT mapped_trip_id,
-
-SERVICE_CHANGE_NUM, 
-SCHED_DAY_TYPE_CODED_NUM,
-count(case when trip_kind_cd not in('S') THEN 1 ELSE 0 END) as nonrevenue_trips,
-sum(trip_miles) as platform_miles,
-sum(trip_duration_mnts) as platform_minutes
-FROM DP.ALL_TRIPS
-WHERE SERVICE_CHANGE_NUM in ({vals1*})
-AND  WORKING_LOAD_STATUS = 'FINAL'
-AND MINOR_CHANGE_NUM = 0
- AND (service_rte_num <500 OR (service_rte_num > 670 
- and service_rte_num < 690))
-GROUP BY SERVICE_CHANGE_NUM,mapped_trip_id,
- SCHED_DAY_TYPE_CODED_NUM)
-
-select t02.service_change_num,
-service_rte_num,
-t01.mapped_trip_id,
-t01.day_part_cd,
-t01.SCHED_DAY_TYPE_CODED_NUM, 
-BUS_BASE_ID, 
-BUS_TYPE_NUM,
-revenue_trips, 
-nonrevenue_trips, 
-revenue_miles,
-platform_miles, 
-case
-	when t01.SCHED_DAY_TYPE_CODED_NUM = 0 then ((t02.platform_minutes/60.0))
-	when t01.SCHED_DAY_TYPE_CODED_NUM = 1 then ((t02.platform_minutes/60.0))
-	when t01.SCHED_DAY_TYPE_CODED_NUM = 2 then ((t02.platform_minutes/60.0))
-	end as platform_hours, 
-case
-	when t01.SCHED_DAY_TYPE_CODED_NUM = 0 then ((platform_miles) *255)
-	when t01.SCHED_DAY_TYPE_CODED_NUM = 1 then ((platform_miles) *52)
-	when t01.SCHED_DAY_TYPE_CODED_NUM = 2 then ((platform_miles) *58) 
-	end as annl_platform_miles
-FROM t01, t02
-WHERE t01.mapped_trip_id= t02.mapped_trip_id 
-ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
+      " SELECT [SERVICE_CHANGE_NUM], 
+        [SERVICE_RTE_NUM] ,
+        [SCHED_DAY_TYPE_CODED_NUM],
+        [DAY_PART_CD],
+        sum(trip_duration_mnts) / 60.0 as platform_hours , 
+        sum(trip_miles) as platform_miles
+          FROM [DP].[ALL_TRIPS]
+          where [SERVICE_CHANGE_NUM] IN ({vals1*})
+          AND [WORKING_LOAD_STATUS] = 'FINAL'
+          AND minor_change_num = '0'
+          AND (service_rte_num <500 OR (service_rte_num > 670 
+          and service_rte_num < 690))
+          AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+          GROUP BY [SERVICE_CHANGE_NUM], [SERVICE_RTE_NUM], [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]
+  ",
       vals1 = service_change,
+      vals2 = day_codes$sched_day_type_coded_num,
       .con = tbird_connection
     )
-  ) |>
-    janitor::clean_names() |>
-    dplyr::rename(trip_id = mapped_trip_id)
+  ) %>%
+    janitor::clean_names()
 
   trip_productivity <- DBI::dbGetQuery(
     tbird_connection,
@@ -131,16 +91,20 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
       ,[DAY_PART_CD]
       ,[SERVICE_RTE_NUM]
       ,[EXPRESS_LOCAL_CD]
-      ,[INBD_OUTBD_CD]
-      ,[TRIP_ID]
-      ,[AVG_PSNGR_MILES]
-      ,[OBSERVED_TRIPS]
-      ,[AVG_PSNGR_BOARDINGS] as ons
+      ,sum([AVG_PSNGR_MILES]) as avg_psngr_miles
+      ,count([OBSERVED_TRIPS]) as trip_count
+      ,sum([AVG_PSNGR_BOARDINGS]) as ons
   FROM [DP].[VW_TRIP_SUMMARY]
  WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
   AND (service_rte_num <500 OR (service_rte_num > 670 
-  and service_rte_num < 690))",
+  and service_rte_num < 690))
+    AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+  GROUP BY [SERVICE_CHANGE_NUM], 
+  [SERVICE_RTE_NUM],  
+   [EXPRESS_LOCAL_CD],
+  [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
       vals1 = service_change,
+      vals2 = day_codes$sched_day_type_coded_num,
       .con = tbird_connection
     )
   ) %>%
@@ -180,7 +144,8 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
         express_local_cd,
         sched_day_type_coded_num,
         svc_family,
-        day_part_cd
+        day_part_cd,
+        trip_count
       ) %>%
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
@@ -231,7 +196,8 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
         service_rte_num,
         express_local_cd,
         sched_day_type_coded_num,
-        svc_family
+        svc_family,
+        trip_count
       ) %>%
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
@@ -323,6 +289,9 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
           psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 1,
           TRUE ~ 0
         )
+      ) |>
+      dplyr::select(
+        -c(dplyr::starts_with("bottom_25") | dplyr::starts_with("top_25"))
       )
 
     if (filter_routes == FALSE) {
@@ -345,7 +314,8 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
         express_local_cd,
         sched_day_type_coded_num,
         svc_family,
-        productivity_period
+        productivity_period,
+        trip_count
       ) %>%
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
@@ -422,7 +392,11 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
           psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 1,
           TRUE ~ 0
         )
+      ) |>
+      dplyr::select(
+        -c(dplyr::starts_with("bottom_25") | dplyr::starts_with("top_25"))
       )
+
     if (filter_routes == FALSE) {
       cli::cli_inform(message = "Returning all routes.")
       productivity_period
@@ -431,8 +405,9 @@ ORDER BY  SCHED_DAY_TYPE_CODED_NUM, service_rte_num, day_part_cd",
       out <- productivity_period |>
         dplyr::filter(service_rte_num %in% route)
     }
-  } else{
-    cli::cli_abort(message = "Missing period_type parameter. Options are 'day_part_cd' or 'service_guidelines'.")
+  } else {
+    cli::cli_abort(
+      message = "Missing period_type parameter. Options are 'day_part_cd' or 'service_guidelines'."
+    )
   }
 }
-
