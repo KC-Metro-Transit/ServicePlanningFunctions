@@ -5,7 +5,7 @@
 #' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #'
-#' @returns
+#' @returns Dataframe of trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 #'
 #' @export Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 
