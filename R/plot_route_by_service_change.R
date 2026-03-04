@@ -10,7 +10,7 @@
 #' @returns ggplot2 object of Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 #'
 #' @export
-#' @examples
+
 plot_route_by_service_change <- function(
   dataframe,
   service_change_num,
