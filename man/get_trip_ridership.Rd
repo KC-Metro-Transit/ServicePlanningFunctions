@@ -2,28 +2,24 @@
 % Please edit documentation in R/get_trip_ridership.R
 \name{get_trip_ridership}
 \alias{get_trip_ridership}
-\title{Get Trip Ridership from T-BIRD
-Export route level ons, offs and load for specified service change,
-route and day from DP.VW_TRIP_SUMMARY}
+\title{Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY}
 \usage{
-get_trip_ridership(service_change_num, route, day, tbird_connection)
+get_trip_ridership(
+  service_change_num,
+  route,
+  sched_day_type_coded_num,
+  tbird_connection
+)
 }
 \arguments{
-\item{service_change_num}{Numeric. The three-digit identifier of the service change.
-Can accept multiple values as a vector.}
+\item{service_change_num}{Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.}
 
-\item{route}{Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
-Can accept multiple values as a vector.}
+\item{route}{Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.}
 
-\item{day}{Character. The day type name. Options are "Weekday", "Saturday", "Sunday". Can accept multiple values as a vector.}
+\item{sched_day_type_coded_num}{Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.}
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 }
-\value{
-A dataframe of trip ridership activity for selected routes, service changes and days.
-}
 \description{
-Get Trip Ridership from T-BIRD
-Export route level ons, offs and load for specified service change,
-route and day from DP.VW_TRIP_SUMMARY
+Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 }

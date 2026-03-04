@@ -33,3 +33,6 @@ BugReports: https://github.com/melissa-gaughan/ServicePlanningFunctions/issues
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Depends: 
+    R (>= 3.5)
+LazyData: true

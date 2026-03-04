@@ -1,0 +1,25 @@
+Function,Variable,Value,Color
+style_kcm_colors,Day Type,Weekday,#FDB71A
+style_kcm_colors,Day Type,Saturday,#31859F
+style_kcm_colors,Day Type,Sunday,#006633
+style_kcm_colors,Productivity Period,Peak,#FDB71A
+style_kcm_colors,Productivity Period,Off-Peak,#006633
+style_kcm_colors,Productivity Period,Night,#390854
+style_kcm_colors,Day Period,AM,#FDB71A
+style_kcm_colors,Day Period,MID,#F57F29
+style_kcm_colors,Day Period,PM,#31859F
+style_kcm_colors,Day Period,XEV,#006633
+style_kcm_colors,Day Period,XNT,#390854
+style_kcm_colors,Before/Post,Before,#31859F
+style_kcm_colors,Before/Post,Post,#F57F29
+style_kcm_colors,Inbound/Outbound,Inbound,#FDB71A
+style_kcm_colors,Inbound/Outbound,Outbound,#31859F
+style_kcm_colors,Inbound/Outbound,I,#FDB71A
+style_kcm_colors,Inbound/Outbound,O,#31859F
+style_kcm_colors,Service Family,Urban,#006848
+style_kcm_colors,Service Family,Suburban,#D67619
+style_kcm_colors,Service Family,Rural and DART,#4B2884
+style_kcm_colors,Service Family,DART/Shuttle,#4B2884
+style_kcm_colors,Service Family,ST,#264D5E
+style_kcm_colors,Service Family,Other,#784885
+style_kcm_colors,Service Family,System,#FDB71A

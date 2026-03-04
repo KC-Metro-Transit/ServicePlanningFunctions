@@ -1,37 +1,25 @@
-#' Get Trip Ridership from T-BIRD
-#' Export route level ons, offs and load for specified service change,
-#' route and day from DP.VW_TRIP_SUMMARY
+#' Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 #'
-#' @param service_change_num Numeric. The three-digit identifier of the service change.
-#'  Can accept multiple values as a vector.
-#' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
-#' Can accept multiple values as a vector.
+#' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
+#' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
+#' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.
 #' @param tbird_connection The connection object created by connect_to_tbird()
-#' @param day Character. The day type name. Options are "Weekday", "Saturday", "Sunday". Can accept multiple values as a vector.
 #'
-#' @returns A dataframe of trip ridership activity for selected routes, service changes and days.
+#' @returns
 #'
 #' @export
-
+#' @examples
 get_trip_ridership <- function(
   service_change_num,
   route,
-  day,
+  sched_day_type_coded_num,
   tbird_connection
 ) {
-  day_codes <- tibble::tibble(day, column_name = "day") |>
-    dplyr::mutate(
-      sched_day_type_coded_num = dplyr::case_when(
-        day == 'Weekday' ~ 0,
-        day == 'Saturday' ~ 1,
-        day == 'Sunday' ~ 2
-      )
-    )
-
-  trip_ridership <- DBI::dbGetQuery(
+  DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
-      "SELECT [SERVICE_CHANGE_NUM]
+      "
+SELECT [SERVICE_CHANGE_NUM]
       ,[SERVICE_RTE_NUM] as route
       ,[INBD_OUTBD_CD] as direction
       ,[SCHED_DAY_TYPE_CODED_NUM] as day_code
@@ -57,21 +45,24 @@ get_trip_ridership <- function(
   ",
       vals1 = service_change_num,
       vals2 = route,
-      vals3 = day_codes$sched_day_type_coded_num,
+      vals3 = sched_day_type_coded_num,
       .con = tbird_connection
     )
   ) %>%
     janitor::clean_names() %>%
     dplyr::mutate(
-      period = dplyr::case_when(
-        trip_time >= 300 & trip_time < 540 ~ 'AM Peak',
-        trip_time >= 540 & trip_time < 900 ~ 'Midday',
-        trip_time >= 900 & trip_time < 1140 ~ 'PM Peak',
-        trip_time >= 1140 & trip_time < 1320 ~ 'Evening',
-        TRUE ~ 'Night'
+      period = factor(
+        case_when(
+          trip_time >= 300 & trip_time < 540 ~ 'AM Peak',
+          trip_time >= 540 & trip_time < 900 ~ 'Midday',
+          trip_time >= 900 & trip_time < 1140 ~ 'PM Peak',
+          trip_time >= 1140 & trip_time < 1320 ~ 'Evening',
+          TRUE ~ 'Night'
+        ),
+        levels = c("AM Peak", "Midday", "PM Peak", 'Evening', 'Night')
       ),
       hour = as.character(trip_time / 60),
-      Day = dplyr::case_when(
+      Day = case_when(
         day_code == 0 ~ 'Weekday',
         day_code == 1 ~ 'Saturday',
         day_code == 2 ~ 'Sunday'
@@ -84,5 +75,33 @@ get_trip_ridership <- function(
       too_few = "align_start"
     ) %>%
     dplyr::mutate(hour = as.integer(hour)) %>%
-    dplyr::select(-min)
+    filter(route != 907) %>%
+    # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
+    dplyr::mutate(
+      yr = str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
+      season_num = str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
+      # Convert Season Digit to Text
+      season = case_match(
+        season_num,
+        "1" ~ "Spring",
+        "2" ~ "Summer",
+        "3" ~ "Fall"
+      ),
+      # Convert Year Digits to YYYY
+      year = case_when(
+        yr > 90 ~ str_c("19", yr), # 1991-1999
+        yr == "" ~ "2000", # 2000
+        yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
+        yr >= 10 ~ str_c("20", yr), # > 2010
+        TRUE ~ NA
+      ),
+      Day = factor(Day, levels = c("Weekday", "Saturday", "Sunday")),
+      Service = reorder(
+        paste(season, year),
+        as.numeric(str_c(year, season_num))
+      )
+    ) %>%
+    clean_service_rte_name(as.character(route)) %>%
+    dplyr::rename(Route = clean_route) %>%
+    dplyr::select(-c(min, yr, season, year, season_num))
 }

@@ -4,6 +4,7 @@
 # ServicePlanningFunctions
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The goal of ServicePlanningFunctions is to standardize functions
@@ -21,6 +22,14 @@ You can install the development version of ServicePlanningFunctions from
 ``` r
 # install.packages("devtools")
 devtools::install_github("KC-Metro-Transit/ServicePlanningFunctions")
+```
+
+## Updating
+
+You can update to the latest version of ServicePlanningFunctions with:
+
+``` r
+update_ServicePlanningFunctions()
 ```
 
 ## save_objects() Example
@@ -57,6 +66,10 @@ mapview::mapview(kc_tracts_no_water)
 
 ## combine_gtfs() Example
 
+combine_gtfs is designed to be used with GTFS files from Netplan and
+combines multiple sets of GTFS files into one. This is typically used to
+combine weekday, saturday and sunday sets of GTFS files into one.
+
 ``` r
 
 gtfs_folder <- fs::path_package( "extdata", "combine_gtfs", package = "ServicePlanningFunctions")
@@ -64,7 +77,39 @@ gtfs_folder <- fs::path_package( "extdata", "combine_gtfs", package = "ServicePl
 madison_st_area_gtfs <- combine_gtfs(gtfs_filepath = gtfs_folder, designated_start_date = 20240901, designated_end_date = 20250330, save_csv = FALSE, save_RDS = FALSE, output_folder = NULL)
 ```
 
+## append_gtfs() Example
+
+append_gtfs is designed to be used with two sets of GTFS files from
+Netplan: (1) One set of GTFS files from the ***Proposed Network that
+only contains select routes*** and (2) one set of GTFS files from the
+***Baseline Network containing all routes***. The function will produce
+a new GTFS output that represents the full proposed network that
+contains proposed changes for the selected routes and the baseline
+network for the remaining routes.
+
+This can later be used as a valid input when performing trip change
+analysis, accessibility analysis, and the Title VI analysis. Users also
+need to explicitly call out deleted routes, so that they are not part of
+the final output. It is also recommended that the *combine_gtfs* is run
+beforehand for each network.
+
+## combine_interagency_gtfs
+
+combine_interagency_gtfs is designed to combine the NetPlan GTFS of
+Metro’s full network and GTFS files from other agencies: Sound Transit,
+Community Transit, and Pierce Transit. Service date ranges of other
+agencies should overlap the service date range of Metro’s GTFS. It is
+also recommended that the *combine_gtfs* is run beforehand for Metro’s
+GTFS. If Metro’s GTFS already contain routes from other agencies, they
+are dropped and replaced with that from their respective agency.
+
 ## clean_service_rte_num() Example
+
+clean_service_rte_num adds the service_rte_num field to the routes.txt
+GTFS file that represents the number equivalent of the route name as
+indicated by the route_short_name field. If the function does not
+recognize a route name, it will prompt the user to provide a number to
+represent the route name.
 
 ``` r
 
@@ -109,6 +154,35 @@ another polygon. Results in a “donut” polygon.
 # Polygon with smaller area removed
  clipped_polygon <- st_erase(big_box, polygon_to_remove)
  plot(st_geometry(clipped_polygon))
+```
+
+## style_kcm() & style_kcm_flip() Examples
+
+These functions can be added to ggplot code to apply a custom theme
+based on KCM’s style guide used by Service Planning. *style_kcm()*
+displays axis lines along the y-axis and *style_kcm_flip()* displays
+axis lines along the x-axis.
+
+``` r
+ggplot(...) +
+  ... +
+  style_kcm()
+```
+
+## style_kcm_colors_default() & style_kcm_colors() Examples
+
+These functions can be added to ggplot code to apply a custom color
+palette based on KCM’s style guide used by Service Planning. This should
+be used with *style_kcm()* and *style_kcm_flip()*.
+*style_kcm_colors_default()* applies the default 6 colors scheme.
+*style_kcm_colors()* will apply appropriate colors if it recognizes
+common values like Day Type and Period.
+
+``` r
+ggplot(...) +
+  ... +
+  style_kcm() +
+  style_kcm_colors()
 ```
 
 ## count_trips_by_geography() Example
