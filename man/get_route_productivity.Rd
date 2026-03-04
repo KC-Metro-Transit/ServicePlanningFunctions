@@ -8,7 +8,7 @@ get_route_productivity(
   service_change,
   tbird_connection,
   period_type,
-  day,
+  sched_day_type_coded_num,
   filter_routes = FALSE,
   route
 )
@@ -21,7 +21,7 @@ Can accept multiple values as a vector.}
 
 \item{period_type}{Character. Level of time aggregation. Options are "day_part_cd" or "service_guidelines".}
 
-\item{day}{Character. The day type name. Options are "Weekday", "Saturday", "Sunday". Can accept multiple values as a vector.}
+\item{sched_day_type_coded_num}{Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday. Can accept multiples.}
 
 \item{filter_routes}{T/F. Do you want to return results for the entire system or for a selection of routes.}
 
