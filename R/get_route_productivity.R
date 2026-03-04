@@ -13,7 +13,7 @@
 #' Can accept multiple values as a vector.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param period_type Character. Level of time aggregation. Options are "day_part_cd" or "service_guidelines".
-#' @param day Character. The day type name. Options are "Weekday", "Saturday", "Sunday". Can accept multiple values as a vector.
+#' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday. Can accept multiples.
 #' @param filter_routes T/F. Do you want to return results for the entire system or for a selection of routes.
 #' @param route Numeric. Required only if filter_routes == TRUE. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
 #' Can accept multiple values as a vector.
@@ -27,19 +27,10 @@ get_route_productivity <- function(
   service_change,
   tbird_connection,
   period_type,
-  day,
+  sched_day_type_coded_num,
   filter_routes = FALSE,
   route
 ) {
-  day_codes <- tibble::tibble(day, column_name = "day") |>
-    dplyr::mutate(
-      sched_day_type_coded_num = dplyr::case_when(
-        day == 'Weekday' ~ 0,
-        day == 'Saturday' ~ 1,
-        day == 'Sunday' ~ 2
-      )
-    )
-
   route_classification <- DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
@@ -77,7 +68,7 @@ get_route_productivity <- function(
           GROUP BY [SERVICE_CHANGE_NUM], [SERVICE_RTE_NUM], [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]
   ",
       vals1 = service_change,
-      vals2 = day_codes$sched_day_type_coded_num,
+      vals2 = sched_day_type_coded_num,
       .con = tbird_connection
     )
   ) %>%
@@ -104,7 +95,7 @@ get_route_productivity <- function(
    [EXPRESS_LOCAL_CD],
   [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
       vals1 = service_change,
-      vals2 = day_codes$sched_day_type_coded_num,
+      vals2 = sched_day_type_coded_num,
       .con = tbird_connection
     )
   ) %>%
