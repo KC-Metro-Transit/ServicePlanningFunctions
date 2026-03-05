@@ -102,6 +102,6 @@ SELECT [SERVICE_CHANGE_NUM]
       )
     ) %>%
     ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
-    dplyr::rename(route = clean_route) %>%
+    dplyr::rename(route_name = clean_route) %>%
     dplyr::select(-c(min, yr, season, year, season_num))
 }
