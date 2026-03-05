@@ -7,7 +7,7 @@
 #'
 #' @returns Dataframe of trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 #'
-#' @export Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
+#' @export
 
 get_trip_ridership <- function(
   service_change_num,

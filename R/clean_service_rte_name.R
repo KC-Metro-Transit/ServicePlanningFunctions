@@ -1,7 +1,7 @@
 #' Clean Service Route Names
 #'
-#' @param The dataframe that contains Service Route Numbers to be converted to Service Route Names
-#' @param route_col
+#' @param  df The dataframe that contains Service Route Numbers to be converted to Service Route Names
+#' @param route_col The column with the route number
 #'
 #' @returns column named 'clean_route' with route name
 #'

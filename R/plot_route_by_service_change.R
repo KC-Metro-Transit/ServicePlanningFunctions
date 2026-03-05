@@ -6,9 +6,7 @@
 #' @param day Character. Day of the week. Weekday, Saturday, Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#'
-#' @returns ggplot2 object of Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
-#'
+#' @returns ggplot2 object
 #' @export
 
 plot_route_by_service_change <- function(

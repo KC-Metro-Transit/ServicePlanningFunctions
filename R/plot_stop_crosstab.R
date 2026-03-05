@@ -115,7 +115,7 @@ plot_stop_crosstab <- function(
       aes(
         x = stats::reorder(hour_label, axis),
         y = value,
-        fill = stats::eorder(service, service_change_num)
+        fill = stats::reorder(service, service_change_num)
       )
     )
   }
