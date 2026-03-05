@@ -6,13 +6,16 @@
 \usage{
 style_kcm_colors()
 }
+\value{
+utility list of categories and default colors
+}
 \description{
 Use Designated KCM Color Scheme for Plots
 }
 \examples{
-ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
-geom_boxplot() +
-facet_grid(. ~ gear) +
-style_kcm() +
-style_kcm_colors()
+#ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
+#geom_boxplot() +
+#facet_grid(. ~ gear) +
+#style_kcm() +
+#style_kcm_colors()
 }

@@ -2,19 +2,22 @@
 % Please edit documentation in R/style_kcm_flip.R
 \name{style_kcm_flip}
 \alias{style_kcm_flip}
-\title{Title}
+\title{style_kcm_flip returns a Metro branded ggplot2 plot with categories on the y axis}
 \usage{
 style_kcm_flip(textsize = NULL)
 }
 \arguments{
 \item{textsize}{Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.}
 }
+\value{
+a Metro branded ggplot2 plot with categories on the y axis
+}
 \description{
-Title
+style_kcm_flip returns a Metro branded ggplot2 plot with categories on the y axis
 }
 \examples{
-ggplot(mtcars, aes(x = factor(cyl), y = wt, color = factor(cyl))) +
-geom_boxplot() +
-facet_grid(. ~ gear) +
-style_kcm_flip()
+#ggplot(mtcars, aes(x = factor(cyl), y = wt, color = factor(cyl))) +
+#geom_boxplot() +
+#facet_grid(. ~ gear) +
+#style_kcm_flip()
 }

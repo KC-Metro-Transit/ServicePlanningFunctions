@@ -29,6 +29,9 @@ plot_stop_crosstab(
 
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
 }
+\value{
+A ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
+}
 \description{
 Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 }

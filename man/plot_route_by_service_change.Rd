@@ -26,6 +26,9 @@ plot_route_by_service_change(
 
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
 }
+\value{
+ggplot2 object
+}
 \description{
 Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()
 }

@@ -7,9 +7,12 @@
 clean_service_rte_name(df, route_col)
 }
 \arguments{
-\item{route_col}{}
+\item{df}{The dataframe that contains Service Route Numbers to be converted to Service Route Names}
 
-\item{The}{dataframe that contains Service Route Numbers to be converted to Service Route Names}
+\item{route_col}{The column with the route number}
+}
+\value{
+column named 'clean_route' with route name
 }
 \description{
 Clean Service Route Names
