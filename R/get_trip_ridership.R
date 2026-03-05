@@ -62,7 +62,7 @@ SELECT [SERVICE_CHANGE_NUM]
         levels = c("AM Peak", "Midday", "PM Peak", 'Evening', 'Night')
       ),
       hour = as.character(trip_time / 60),
-      Day = dplyr::case_when(
+      day = dplyr::case_when(
         day_code == 0 ~ 'Weekday',
         day_code == 1 ~ 'Saturday',
         day_code == 2 ~ 'Sunday'
