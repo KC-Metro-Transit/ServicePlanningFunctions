@@ -283,7 +283,34 @@ get_route_productivity <- function(
       ) |>
       dplyr::select(
         -c(dplyr::starts_with("bottom_25") | dplyr::starts_with("top_25"))
+      ) # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
+    dplyr::mutate(
+      yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
+      season_num = stringr::str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
+      # Convert Season Digit to Text
+      season = dplyr::case_match(
+        season_num,
+        "1" ~ "Spring",
+        "2" ~ "Summer",
+        "3" ~ "Fall"
+      ),
+      # Convert Year Digits to YYYY
+      year = dplyr::case_when(
+        yr > 90 ~ str_c("19", yr), # 1991-1999
+        yr == "" ~ "2000", # 2000
+        yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
+        yr >= 10 ~ str_c("20", yr), # > 2010
+        TRUE ~ NA
+      ),
+      day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
+      service = stats::reorder(
+        paste(season, year),
+        as.numeric(str_c(year, season_num))
       )
+    ) %>%
+      ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
+      dplyr::rename(route_name = clean_route) %>%
+      dplyr::select(-c(min, yr, season, year, season_num))
 
     if (filter_routes == FALSE) {
       cli::cli_inform(message = "Returning all routes.")
@@ -319,7 +346,7 @@ get_route_productivity <- function(
         psngr_miles_per_platform_mile = (avg_psngr_miles / platform_miles)
       ) %>%
       dplyr::mutate(
-        weekday = dplyr::case_when(
+        day = dplyr::case_when(
           sched_day_type_coded_num == 0 ~ "Weekday",
           sched_day_type_coded_num == 1 ~ "Saturday",
           sched_day_type_coded_num == 2 ~ "Sunday"
@@ -386,7 +413,35 @@ get_route_productivity <- function(
       ) |>
       dplyr::select(
         -c(dplyr::starts_with("bottom_25") | dplyr::starts_with("top_25"))
-      )
+      ) |>
+      # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
+      dplyr::mutate(
+        yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
+        season_num = stringr::str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
+        # Convert Season Digit to Text
+        season = dplyr::case_match(
+          season_num,
+          "1" ~ "Spring",
+          "2" ~ "Summer",
+          "3" ~ "Fall"
+        ),
+        # Convert Year Digits to YYYY
+        year = dplyr::case_when(
+          yr > 90 ~ str_c("19", yr), # 1991-1999
+          yr == "" ~ "2000", # 2000
+          yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
+          yr >= 10 ~ str_c("20", yr), # > 2010
+          TRUE ~ NA
+        ),
+        day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
+        service = stats::reorder(
+          paste(season, year),
+          as.numeric(str_c(year, season_num))
+        )
+      ) %>%
+      ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
+      dplyr::rename(route_name = clean_route) %>%
+      dplyr::select(-c(min, yr, season, year, season_num))
 
     if (filter_routes == FALSE) {
       cli::cli_inform(message = "Returning all routes.")
