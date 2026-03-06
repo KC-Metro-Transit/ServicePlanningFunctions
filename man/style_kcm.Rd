@@ -2,19 +2,22 @@
 % Please edit documentation in R/style_kcm.R
 \name{style_kcm}
 \alias{style_kcm}
-\title{Title}
+\title{Format plots in Metro style}
 \usage{
 style_kcm(textsize = NULL)
 }
 \arguments{
 \item{textsize}{Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.}
 }
+\value{
+Used in conjunction with ggplot2, returns formatted plots
+}
 \description{
-Title
+Format plots in Metro style
 }
 \examples{
-ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
-geom_boxplot() +
-facet_grid(. ~ gear) +
-style_kcm()
+#ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
+#geom_boxplot() +
+#facet_grid(. ~ gear) +
+#style_kcm()
 }

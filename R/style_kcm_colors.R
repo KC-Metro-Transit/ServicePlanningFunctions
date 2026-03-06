@@ -1,14 +1,14 @@
 #' Use Designated KCM Color Scheme for Plots
 #'
-#' @returns
+#' @returns utility list of categories and default colors
 #'
 #' @export
 #' @examples
-#' ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
-#' geom_boxplot() +
-#' facet_grid(. ~ gear) +
-#' style_kcm() +
-#' style_kcm_colors()
+#' #ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
+#' #geom_boxplot() +
+#' #facet_grid(. ~ gear) +
+#' #style_kcm() +
+#' #style_kcm_colors()
 style_kcm_colors <- function() {
   kcm_custom_colors <- c(
     # Day Type

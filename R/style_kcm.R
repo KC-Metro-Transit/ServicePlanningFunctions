@@ -1,15 +1,15 @@
-#' Title
+#' Format plots in Metro style
 #'
 #' @param textsize Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.
 #'
-#' @returns
+#' @returns Used in conjunction with ggplot2, returns formatted plots
 #'
 #' @export
 #' @examples
-#' ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
-#' geom_boxplot() +
-#' facet_grid(. ~ gear) +
-#' style_kcm()
+#' #ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
+#' #geom_boxplot() +
+#' #facet_grid(. ~ gear) +
+#' #style_kcm()
 style_kcm <- function(textsize = NULL) {
   # Download inter font if not installed already
   if (!"inter" %in% sysfonts::font_families()) {
@@ -35,7 +35,7 @@ style_kcm <- function(textsize = NULL) {
   # Generate Theme
   list(ggplot2::theme(
     # Text, title, subtitle and caption fonts
-    text = element_text(size = font_size, family = font),
+    text = ggplot2::element_text(size = font_size, family = font),
     plot.title = ggplot2::element_text(
       size = title_size,
       family = font,
@@ -76,7 +76,7 @@ style_kcm <- function(textsize = NULL) {
       color = "black"
     ),
     axis.ticks = ggplot2::element_blank(),
-    axis.line = element_line(
+    axis.line = ggplot2::element_line(
       linewidth = 0.6,
       linetype = 'solid',
       color = "black"
@@ -92,9 +92,9 @@ style_kcm <- function(textsize = NULL) {
     panel.grid.major.x = ggplot2::element_blank(),
 
     panel.background = ggplot2::element_rect(fill = "white"),
-    panel.border = element_blank(),
+    panel.border = ggplot2::element_blank(),
 
-    panel.spacing.x = unit(1.5, "line"),
+    panel.spacing.x = ggplot2::unit(1.5, "line"),
 
     # Other
     strip.background = ggplot2::element_rect(fill = 'white'),

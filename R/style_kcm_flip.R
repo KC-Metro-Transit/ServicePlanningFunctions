@@ -1,15 +1,15 @@
-#' Title
+#' style_kcm_flip returns a Metro branded ggplot2 plot with categories on the y axis
 #'
 #' @param textsize Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.
 #'
-#' @returns
+#' @returns  a Metro branded ggplot2 plot with categories on the y axis
 #'
 #' @export
 #' @examples
-#' ggplot(mtcars, aes(x = factor(cyl), y = wt, color = factor(cyl))) +
-#' geom_boxplot() +
-#' facet_grid(. ~ gear) +
-#' style_kcm_flip()
+#' #ggplot(mtcars, aes(x = factor(cyl), y = wt, color = factor(cyl))) +
+#' #geom_boxplot() +
+#' #facet_grid(. ~ gear) +
+#' #style_kcm_flip()
 style_kcm_flip <- function(textsize = NULL) {
   # Download inter font if not installed already
   if (!"inter" %in% sysfonts::font_families()) {
@@ -35,7 +35,7 @@ style_kcm_flip <- function(textsize = NULL) {
   # Generate Theme
   list(ggplot2::theme(
     # Text, title, subtitle and caption fonts
-    text = element_text(size = font_size, family = font),
+    text = ggplot2::element_text(size = font_size, family = font),
     plot.title = ggplot2::element_text(
       size = title_size,
       family = font,
@@ -64,7 +64,7 @@ style_kcm_flip <- function(textsize = NULL) {
     legend.background = ggplot2::element_blank(),
     legend.title = ggplot2::element_blank(),
     legend.justification = 'left',
-    legend.margin = margin(t = 0, b = 0, l = 0, r = 0),
+    legend.margin = ggplot2::margin(t = 0, b = 0, l = 0, r = 0),
     legend.key = ggplot2::element_blank(),
     legend.text = ggplot2::element_text(family = font, size = legend_size),
 
@@ -76,7 +76,7 @@ style_kcm_flip <- function(textsize = NULL) {
       color = "black"
     ),
     axis.ticks = ggplot2::element_blank(),
-    axis.line = element_line(
+    axis.line = ggplot2::element_line(
       linewidth = 0.6,
       linetype = 'solid',
       color = "black"
@@ -92,9 +92,9 @@ style_kcm_flip <- function(textsize = NULL) {
     panel.grid.major.y = ggplot2::element_blank(),
 
     panel.background = ggplot2::element_rect(fill = "white"),
-    panel.border = element_blank(),
+    panel.border = ggplot2::element_blank(),
 
-    panel.spacing.y = unit(1.5, "line"),
+    panel.spacing.y = ggplot2::unit(1.5, "line"),
 
     # Other
     strip.background = ggplot2::element_rect(fill = 'white'),

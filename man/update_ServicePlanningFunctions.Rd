@@ -6,6 +6,9 @@
 \usage{
 update_ServicePlanningFunctions()
 }
+\value{
+updates ServicePlanningFunctions package. Returns error if not successful.
+}
 \description{
 Install/Update ServicePlanningFunctions Package
 }

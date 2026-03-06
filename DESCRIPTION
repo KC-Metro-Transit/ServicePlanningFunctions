@@ -26,7 +26,17 @@ Imports:
     fs, 
     DBI, 
     janitor, 
-    glue
+    glue, 
+    tibble, 
+    sysfonts, 
+    showtext, 
+    viridis, 
+    scales, 
+    curl, 
+    remotes, 
+    devtools, 
+    ggplot2, 
+    rlang
 URL: https://github.com/melissa-gaughan/ServicePlanningFunctions
 BugReports: https://github.com/melissa-gaughan/ServicePlanningFunctions/issues
 Suggests: 

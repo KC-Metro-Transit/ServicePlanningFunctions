@@ -1,9 +1,9 @@
 #' Install/Update ServicePlanningFunctions Package
 #'
-#' @returns
+#' @returns updates ServicePlanningFunctions package. Returns error if not successful.
 #'
 #' @export
-#' @examples
+
 update_ServicePlanningFunctions <- function() {
   if (curl::has_internet()) {
     # Check latest commit of ServicePlanningFunctions

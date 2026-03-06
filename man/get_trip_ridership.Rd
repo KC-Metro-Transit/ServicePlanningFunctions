@@ -20,6 +20,9 @@ get_trip_ridership(
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 }
+\value{
+Dataframe of trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
+}
 \description{
 Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 }

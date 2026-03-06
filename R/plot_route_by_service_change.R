@@ -6,11 +6,9 @@
 #' @param day Character. Day of the week. Weekday, Saturday, Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#'
-#' @returns
-#'
+#' @returns ggplot2 object
 #' @export
-#' @examples
+
 plot_route_by_service_change <- function(
   dataframe,
   service_change_num,
@@ -21,15 +19,15 @@ plot_route_by_service_change <- function(
 ) {
   data <- dataframe %>%
     dplyr::filter(
-      Day %in% day,
+      day %in% day,
       day_part_cd %in% time_period,
       service_change_num %in% .env$service_change_num,
       route %in% .env$route
     ) %>%
-    dplyr::group_by(service_change_num, Service, Route, route, Day) %>%
+    dplyr::group_by(service_change_num, service, route, day) %>%
     dplyr::summarise(
-      across(ons:offs, sum, na.rm = TRUE),
-      across(avg_load, mean, na.rm = TRUE),
+      dplyr::across(ons:offs, sum, na.rm = TRUE),
+      dplyr::across(avg_load, mean, na.rm = TRUE),
       .groups = 'keep'
     ) %>%
     tidyr::pivot_longer(
@@ -62,15 +60,15 @@ plot_route_by_service_change <- function(
   if (length(route) > 15) {
     # top 15 routes in latest service change
     data1 <- data %>%
-      dplyr::group_by(service_change_num, Service, Route, route) %>%
+      dplyr::group_by(service_change_num, service, route) %>%
       dplyr::summarise(value = sum(value, na.rm = TRUE)) %>%
-      dplyr::arrange(desc(service_change_num), desc(value)) %>%
+      dplyr::arrange(dplyr::desc(service_change_num), dplyr::desc(value)) %>%
       head(15)
 
     subset_route_list <- unlist(list(unique(data1$route)))
 
     data <- data %>%
-      dplyr::group_by(service_change_num, Service, Route, route, Day) %>%
+      dplyr::group_by(service_change_num, service, route, day) %>%
       dplyr::summarise(value = sum(value, na.rm = TRUE)) %>%
       dplyr::filter(route %in% subset_route_list)
 
@@ -84,23 +82,27 @@ plot_route_by_service_change <- function(
   )
 
   day_title <- ifelse(
-    length(setdiff(c("Weekday", "Saturday", "Sunday"), unique(data$Day))) == 0,
+    length(setdiff(c("Weekday", "Saturday", "Sunday"), unique(data$day))) == 0,
     paste0('All Week'),
-    paste0(unique(data$Day), collapse = ", ")
+    paste0(unique(data$day), collapse = ", ")
   )
 
   plt <- ggplot2::ggplot(
     data,
-    aes(x = reorder(Route, desc(value)), y = value, fill = Service)
+    aes(
+      x = stats::reorder(route, dplyr::desc(value)),
+      y = value,
+      fill = service
+    )
   ) +
-    ggplot2::geom_col(position = position_dodge()) +
+    ggplot2::geom_col(position = ggplot2::position_dodge()) +
     ggplot2::ggtitle(paste0(var_title, ' by Route', sub_title)) +
     ggplot2::scale_x_discrete(
       labels = scales::label_wrap(10),
-      guide = guide_axis(angle = 45)
+      guide = ggplot2::guide_axis(angle = 45)
     ) +
     ggplot2::labs(subtitle = paste(day_title, period_title, sep = ", ")) +
-    ggplot2::facet_wrap(~Day) +
-    style_kcm()
+    ggplot2::facet_wrap(~day) +
+    ServicePlanningFunctions::style_kcm()
   plt
 }

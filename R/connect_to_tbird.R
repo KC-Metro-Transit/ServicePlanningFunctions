@@ -9,19 +9,28 @@
 #'
 #'
 connect_to_tbird <- function() {
-  con <- DBI::dbConnect(
-    odbc::odbc(),
-    Driver = "ODBC Driver 17 for SQL Server",
-    Server = "kcitazrsqlprp01.database.windows.net",
-    Database = "tbird_dw",
-    Authentication = "ActiveDirectoryIntegrated"
-  )
-
-  if (DBI::dbIsValid(con) == FALSE) {
-    cli::cli_alert_warning(
-      text = "Connection to T-BIRD NOT successful. Are you on the VPN?"
+  if (
+    DBI::dbCanConnect(
+      odbc::odbc(),
+      Driver = "ODBC Driver 17 for SQL Server",
+      Server = "kcitazrsqlprp01.database.windows.net",
+      Database = "tbird_dw",
+      Authentication = "ActiveDirectoryIntegrated"
+    ) ==
+      FALSE
+  ) {
+    cli::cli_abort(
+      message = "Connection to T-BIRD NOT successful. Are you on the VPN?"
     )
   } else {
+    con <- DBI::dbConnect(
+      odbc::odbc(),
+      Driver = "ODBC Driver 17 for SQL Server",
+      Server = "kcitazrsqlprp01.database.windows.net",
+      Database = "tbird_dw",
+      Authentication = "ActiveDirectoryIntegrated"
+    )
+
     cli::cli_alert_success(
       text = "Connection to T-BIRD successful"
     )

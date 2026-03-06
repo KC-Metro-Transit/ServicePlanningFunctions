@@ -1,17 +1,17 @@
 #' Clean Service Route Names
 #'
-#' @param The dataframe that contains Service Route Numbers to be converted to Service Route Names
-#' @param route_col
+#' @param  df The dataframe that contains Service Route Numbers to be converted to Service Route Names
+#' @param route_col The column with the route number
 #'
-#' @returns
+#' @returns column named 'clean_route' with route name
 #'
 #' @export
-#' @examples
+
 clean_service_rte_name <- function(df, route_col) {
-  route_col = enquo(route_col)
+  route_col = rlang::enquo(route_col)
   dplyr::mutate(
     df,
-    clean_route = case_match(
+    clean_route = dplyr::case_match(
       !!route_col,
       '671' ~ 'A Line',
       '672' ~ 'B Line',
@@ -24,7 +24,7 @@ clean_service_rte_name <- function(df, route_col) {
       '96' ~ 'First Hill Streetcar',
       '98' ~ 'South Lake Union Streetcar',
       '629' ~ 'SVT',
-      '628' ~ 'Duvall-Monroe Shuttle',
+      '627' ~ 'Duvall-Monroe Shuttle',
       '634' ~ 'Trailhead Direct Mt. Si',
       '636' ~ 'Trailhead Direct Mailbox Peak',
       '637' ~ 'Trailhead Direct Issaquah Alps',

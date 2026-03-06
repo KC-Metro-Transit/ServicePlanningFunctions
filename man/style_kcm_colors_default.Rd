@@ -6,13 +6,16 @@
 \usage{
 style_kcm_colors_default()
 }
+\value{
+utility list of default Metro colors
+}
 \description{
 Use Default KCM Color Scheme for Plots
 }
 \examples{
-ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
-geom_boxplot() +
-facet_grid(. ~ gear) +
-style_kcm() +
-style_kcm_colors()
+#ggplot(mtcars, aes(x = wt, y = factor(cyl), color = factor(cyl))) +
+#geom_boxplot() +
+#facet_grid(. ~ gear) +
+#style_kcm() +
+#style_kcm_colors()
 }
