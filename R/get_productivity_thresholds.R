@@ -181,14 +181,14 @@ get_productivity_thresholds <- function(
         service_rte_num,
         express_local_cd,
         sched_day_type_coded_num,
-        svc_family,
-        trip_count
+        svc_family
       ) %>%
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
         platform_miles = sum(platform_miles, na.rm = T),
         avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
-        platform_hours = sum(platform_hours, na.rm = T)
+        platform_hours = sum(platform_hours, na.rm = T),
+        trip_count = sum(trip_count, na.rm = T)
       ) %>%
       dplyr::mutate(
         rides_per_platform_hour = (ons / platform_hours),
@@ -260,14 +260,14 @@ get_productivity_thresholds <- function(
         express_local_cd,
         sched_day_type_coded_num,
         svc_family,
-        productivity_period,
-        trip_count
+        productivity_period
       ) %>%
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
         platform_miles = sum(platform_miles, na.rm = T),
         avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
-        platform_hours = sum(platform_hours, na.rm = T)
+        platform_hours = sum(platform_hours, na.rm = T),
+        trip_count = sum(trip_count, na.rm = T)
       ) %>%
       dplyr::mutate(
         rides_per_platform_hour = (ons / platform_hours),
