@@ -84,7 +84,7 @@ plot_route_by_service_change <- function(
   day_title <- ifelse(
     length(setdiff(c("Weekday", "Saturday", "Sunday"), unique(data$day))) == 0,
     paste0('All Week'),
-    paste0(unique(data$Day), collapse = ", ")
+    paste0(unique(data$day), collapse = ", ")
   )
 
   plt <- ggplot2::ggplot(

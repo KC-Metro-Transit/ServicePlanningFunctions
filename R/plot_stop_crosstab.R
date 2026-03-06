@@ -5,7 +5,7 @@
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
 #' @param day Character. Day of the week. Weekday, Saturday, Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
-#' @param x_axis Character. Grouping variable based on columns found in output from get_trip_ridership(). Day, period, hour.
+#' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). day, period, hour, route, route_name.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #'
 #' @returns A ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
@@ -62,6 +62,7 @@ plot_stop_crosstab <- function(
     'period' ~ 'Period',
     'hour' ~ 'Hour',
     'route' ~ 'Route',
+    'route_name' ~ 'Route',
     'stop' ~ 'Stop',
     .default = str_to_title(x_axis)
   )
