@@ -5,12 +5,12 @@
 \title{Get Route Productivity}
 \usage{
 get_route_productivity(
-  service_change,
+  service_change = 251,
   tbird_connection,
-  period_type,
-  sched_day_type_coded_num,
+  period_type = "service_guidelines",
+  sched_day_type_coded_num = c(0, 1, 2),
   filter_routes = FALSE,
-  route
+  route = NULL
 )
 }
 \arguments{

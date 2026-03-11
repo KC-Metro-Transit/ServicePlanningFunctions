@@ -24,12 +24,12 @@
 #' @export
 
 get_route_productivity <- function(
-  service_change,
+  service_change = 251,
   tbird_connection,
-  period_type,
-  sched_day_type_coded_num,
+  period_type = "service_guidelines",
+  sched_day_type_coded_num = c(0, 1, 2),
   filter_routes = FALSE,
-  route
+  route = NULL
 ) {
   route_classification <- DBI::dbGetQuery(
     tbird_connection,
@@ -49,51 +49,28 @@ get_route_productivity <- function(
     dplyr::arrange(service_change_num, service_rte_num) |>
     dplyr::distinct(service_rte_num, service_change_num, .keep_all = T)
 
-  all_trips <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      " SELECT [SERVICE_CHANGE_NUM], 
-        [SERVICE_RTE_NUM] ,
-        [SCHED_DAY_TYPE_CODED_NUM],
-        [DAY_PART_CD],
-        sum(trip_duration_mnts) / 60.0 as platform_hours , 
-        sum(trip_miles) as platform_miles
-          FROM [DP].[ALL_TRIPS]
-          where [SERVICE_CHANGE_NUM] IN ({vals1*})
-          AND [WORKING_LOAD_STATUS] = 'FINAL'
-          AND minor_change_num = '0'
-          AND (service_rte_num <500 OR (service_rte_num > 670 
-          and service_rte_num < 690))
-          AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
-          GROUP BY [SERVICE_CHANGE_NUM], [SERVICE_RTE_NUM], [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]
-  ",
-      vals1 = service_change,
-      vals2 = sched_day_type_coded_num,
-      .con = tbird_connection
-    )
-  ) %>%
-    janitor::clean_names()
-
   trip_productivity <- DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
-      "SELECT [SERVICE_CHANGE_NUM]
-      ,[SCHED_DAY_TYPE_CODED_NUM]
-      ,[DAY_PART_CD]
-      ,[SERVICE_RTE_NUM]
-      ,[EXPRESS_LOCAL_CD]
-      ,sum([AVG_PSNGR_MILES]) as avg_psngr_miles
-      ,count([OBSERVED_TRIPS]) as trip_count
-      ,sum([AVG_PSNGR_BOARDINGS]) as ons
-  FROM [DP].[VW_TRIP_SUMMARY]
- WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
-  AND (service_rte_num <500 OR (service_rte_num > 670 
-  and service_rte_num < 690))
-    AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
-  GROUP BY [SERVICE_CHANGE_NUM], 
-  [SERVICE_RTE_NUM],  
-   [EXPRESS_LOCAL_CD],
-  [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
+      "SELECT [SERVICE_CHANGE_NUM] 
+                                ,SCHED_DAY_TYPE_CODED_NUM
+                                ,[DAY_PART_CD]
+                                ,[SERVICE_RTE_NUM]
+                                ,[EXPRESS_LOCAL_CD]
+                                , max(sched_start_time_mnts_after_midnt) as last_trip
+                                , min(sched_start_time_mnts_after_midnt) as first_trip
+                                ,sum(trip_miles) as platform_miles
+                                ,sum(platform_hours) as platform_hours
+                                ,sum([AVG_PSNGR_MILES]) as avg_psngr_miles
+                                ,count(trip_id) as trip_count
+                                ,sum([AVG_PSNGR_BOARDINGS]) as ons
+                                FROM [DP].[VW_TRIP_SUMMARY]
+                                 WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
+                                  AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+                                  GROUP BY [SERVICE_CHANGE_NUM], 
+                                  [SERVICE_RTE_NUM],  
+                                   [EXPRESS_LOCAL_CD],
+                                  [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
       vals1 = service_change,
       vals2 = sched_day_type_coded_num,
       .con = tbird_connection
@@ -112,16 +89,15 @@ get_route_productivity <- function(
         DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night",
         DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night"
       )
-    ) |>
+    ) %>%
+
     janitor::clean_names() %>%
     dplyr::arrange(
       service_change_num,
       service_rte_num,
       sched_day_type_coded_num
     ) |>
-    dplyr::left_join(route_classification) |>
-    dplyr::left_join(all_trips) |>
-    dplyr::filter(!(operator_agency_cd == 'HPL' | operator_agency_cd == 'SVT'))
+    dplyr::left_join(route_classification)
 
   if (period_type == "day_part_cd") {
     cli::cli_inform(
@@ -296,21 +272,23 @@ get_route_productivity <- function(
       ),
       # Convert Year Digits to YYYY
       year = dplyr::case_when(
-        yr > 90 ~ str_c("19", yr), # 1991-1999
+        yr > 90 ~ stringr::str_c("19", yr), # 1991-1999
         yr == "" ~ "2000", # 2000
-        yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
-        yr >= 10 ~ str_c("20", yr), # > 2010
+        yr %in% 1:10 ~ stringr::str_c("200", yr), # 2001-2009
+        yr >= 10 ~ stringr::str_c("20", yr), # > 2010
         TRUE ~ NA
       ),
       day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
       service = stats::reorder(
         paste(season, year),
-        as.numeric(str_c(year, season_num))
+        as.numeric(stringr::str_c(year, season_num))
       )
     ) %>%
-      ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
+      ServicePlanningFunctions::clean_service_rte_name(as.character(
+        service_rte_num
+      )) %>%
       dplyr::rename(route_name = clean_route) %>%
-      dplyr::select(-c(min, yr, season, year, season_num))
+      dplyr::select(-c(yr, season, year, season_num))
 
     if (filter_routes == FALSE) {
       cli::cli_inform(message = "Returning all routes.")
@@ -329,17 +307,58 @@ get_route_productivity <- function(
       dplyr::group_by(
         service_change_num,
         service_rte_num,
-        express_local_cd,
+        #express_local_cd,
+        sched_day_type_coded_num,
+        svc_family,
+        productivity_period,
+        .drop = F
+      ) %>%
+
+      dplyr::summarise(
+        # this summarize clause is duplicated to sum across am/pm peak periods before reassigning productivity periods based on trip counts and trip start times.
+        ons = sum(ons, na.rm = T),
+        platform_miles = sum(platform_miles, na.rm = T),
+        avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
+        platform_hours = sum(platform_hours, na.rm = T),
+        trip_count = sum(trip_count, na.rm = T),
+        last_trip = max(last_trip, na.rm = T),
+        first_trip = min(first_trip, na.rm = T)
+      ) %>%
+      dplyr::mutate(
+        productivity_period = dplyr::case_when(
+          productivity_period == "Night" &
+            sched_day_type_coded_num == 0 &
+            trip_count < 5 &
+            last_trip < 1200 ~ "Peak",
+          productivity_period == "Night" &
+            sched_day_type_coded_num != 0 &
+            trip_count < 5 &
+            last_trip < 1200 ~ "Off-Peak",
+          productivity_period == "Peak" &
+            sched_day_type_coded_num == 0 &
+            trip_count < 8 &
+            last_trip < 1020 &
+            first_trip > 250 ~ "Off-Peak",
+          TRUE ~ productivity_period
+        )
+      ) |>
+      dplyr::group_by(
+        service_change_num,
+        service_rte_num,
+        # express_local_cd, pbi dashboard does not group by E/L
         sched_day_type_coded_num,
         svc_family,
         productivity_period
       ) %>%
+
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
         platform_miles = sum(platform_miles, na.rm = T),
         avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
         platform_hours = sum(platform_hours, na.rm = T),
-        trip_count = sum(trip_count, na.rm = T)
+        trip_count = sum(trip_count, na.rm = T),
+        last_trip = max(last_trip, na.rm = T),
+        first_trip = min(first_trip, na.rm = T)
       ) %>%
       dplyr::mutate(
         rides_per_platform_hour = (ons / platform_hours),
@@ -427,21 +446,23 @@ get_route_productivity <- function(
         ),
         # Convert Year Digits to YYYY
         year = dplyr::case_when(
-          yr > 90 ~ str_c("19", yr), # 1991-1999
+          yr > 90 ~ stringr::str_c("19", yr), # 1991-1999
           yr == "" ~ "2000", # 2000
-          yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
-          yr >= 10 ~ str_c("20", yr), # > 2010
+          yr %in% 1:10 ~ stringr::str_c("200", yr), # 2001-2009
+          yr >= 10 ~ stringr::str_c("20", yr), # > 2010
           TRUE ~ NA
         ),
         day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
         service = stats::reorder(
           paste(season, year),
-          as.numeric(str_c(year, season_num))
+          as.numeric(stringr::str_c(year, season_num))
         )
       ) %>%
-      ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
+      ServicePlanningFunctions::clean_service_rte_name(as.character(
+        service_rte_num
+      )) %>%
       dplyr::rename(route_name = clean_route) %>%
-      dplyr::select(-c(min, yr, season, year, season_num))
+      dplyr::select(-c(yr, season, year, season_num))
 
     if (filter_routes == FALSE) {
       cli::cli_inform(message = "Returning all routes.")
