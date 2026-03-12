@@ -63,6 +63,7 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         route_short_name == "First Hill Streetcar" ~ "96",
         route_short_name == "South Lake Union Streetcar" ~ "98",
         route_short_name == "SVT" ~ "629",
+        route_short_name == "Valley Shuttle" ~ "629",
         route_short_name == "Duvall-Monroe Shuttle" ~ "628",
         route_short_name == "Trailhead Direct Mt. Si" ~ "634",
         route_short_name == "Trailhead Direct Mailbox Peak" ~ "636",
@@ -73,21 +74,11 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         route_short_name == "Swift Green" ~ "702",
         route_short_name == "Swift Orange" ~ "703",
         route_short_name == "STCL" ~ "999",
-        TRUE ~ route_short_name
+        .default = dplyr::coalesce(route_short_name, route_long_name)
       )
     )
 
-  routes_named <- routes_na %>%
-    dplyr::filter(is.na(service_rte_num)) %>% #double check that there are no na
-    tidyr::unite(
-      service_rte_num,
-      route_short_name,
-      route_long_name,
-      remove = FALSE,
-      sep = " "
-    )
-
-  clean_routes <- dplyr::bind_rows(routes_na, routes_named) %>%
+  clean_routes <- routes_na %>%
     dplyr::mutate(
       service_rte_num = stringr::str_remove(service_rte_num, "[A-z]+")
     ) %>%
@@ -110,7 +101,10 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         temp_service_rte_num <- readline(
           prompt = paste0(
             "Enter service route number for ",
-            na_routes$route_short_name[i],
+            dplyr::coalesce(
+              na_routes$route_short_name[i],
+              na_routes$route_long_name[i]
+            ),
             " (or type 'q' to quit): "
           )
         )
