@@ -31,6 +31,19 @@ get_route_productivity <- function(
   filter_routes = FALSE,
   route = NULL
 ) {
+  current_service_change_df <- DBI::dbGetQuery(
+    tbird_connection,
+    glue::glue_sql(
+      "select service_change_num 
+          where full_date = ({vals1*})
+            ",
+      vals1 = lubridate::today(),
+      .con = tbird_connection
+    )
+  )
+
+  current_service_change <- as.numeric(current_service_change_df$service_change)
+
   route_classification <- DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
@@ -49,10 +62,17 @@ get_route_productivity <- function(
     dplyr::arrange(service_change_num, service_rte_num) |>
     dplyr::distinct(service_rte_num, service_change_num, .keep_all = T)
 
-  trip_productivity <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      "SELECT [SERVICE_CHANGE_NUM] 
+  # if you are getting data for the current service change or if you want data to be grouped by day part, you need to use dp.vw_trip_summary.
+  if (
+    (period_type == "service_guidelines" &
+      current_service_change %in% service_change &
+      length(service_change) == 1) |
+      period_type == "day_part_cd"
+  ) {
+    trip_productivity <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT [SERVICE_CHANGE_NUM] 
                                 ,SCHED_DAY_TYPE_CODED_NUM
                                 ,[DAY_PART_CD]
                                 ,[SERVICE_RTE_NUM]
@@ -71,37 +91,226 @@ get_route_productivity <- function(
                                   [SERVICE_RTE_NUM],  
                                    [EXPRESS_LOCAL_CD],
                                   [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
-      vals1 = service_change,
-      vals2 = sched_day_type_coded_num,
-      .con = tbird_connection
-    )
-  ) %>%
-    dplyr::mutate(
-      productivity_period = dplyr::case_when(
-        DAY_PART_CD == "AM" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Peak",
-        DAY_PART_CD == "MID" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Off-Peak",
-        DAY_PART_CD == "PM" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Peak",
-        DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Night",
-        DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Night",
-        DAY_PART_CD == "AM" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
-        DAY_PART_CD == "MID" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
-        DAY_PART_CD == "PM" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
-        DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night",
-        DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night"
+        vals1 = service_change,
+        vals2 = sched_day_type_coded_num,
+        .con = tbird_connection
       )
     ) %>%
+      dplyr::mutate(
+        productivity_period = dplyr::case_when(
+          DAY_PART_CD == "AM" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Peak",
+          DAY_PART_CD == "MID" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Off-Peak",
+          DAY_PART_CD == "PM" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Peak",
+          DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Night",
+          DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Night",
+          DAY_PART_CD == "AM" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
+          DAY_PART_CD == "MID" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
+          DAY_PART_CD == "PM" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
+          DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night",
+          DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night"
+        )
+      ) %>%
+      dplyr::mutate(dplyr::across(platform_miles:ons, ~ as.numeric(.))) %>%
+      janitor::clean_names() %>%
+      dplyr::arrange(
+        service_change_num,
+        service_rte_num,
+        sched_day_type_coded_num
+      ) |>
+      dplyr::left_join(route_classification)
+  } else if (
+    period_type == "service_guidelines" &
+      !(current_service_change %in% service_change)
+  ) {
+    #use dp.trip_productivity for official productivity numbers for past service changes
+    trip_productivity <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "Select [SERVICE_CHANGE_NUM] 
+                     ,SCHED_DAY_TYPE_CODED_NUM
+                     ,[SERVICE_RTE_NUM]
+                     ,[EXPRESS_LOCAL_CD]
+                     ,productivity_period
+                     ,sum(annl_sched_plat_miles) as platform_miles
+                     ,sum(annl_sched_plat_hrs) as platform_hours
+                     ,sum([Annl_PSNGR_MILES]) as avg_psngr_miles
+                     ,sum([Annl_PSNGR_BOARDINGS]) as ons
+                     ,count(trip_id) as trip_count
+                     FROM [DP].[trip_productivity]
+                     WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
+                     AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+                     GROUP BY [SERVICE_CHANGE_NUM], 
+                     [SERVICE_RTE_NUM],  
+                     [EXPRESS_LOCAL_CD],
+                     [SCHED_DAY_TYPE_CODED_NUM], 
+                        productivity_period",
+        vals1 = service_change,
+        vals2 = sched_day_type_coded_num,
+        .con = tbird_connection
+      )
+    ) %>%
+      janitor::clean_names() %>%
+      dplyr::mutate(dplyr::across(
+        platform_miles:ons,
+        ~ dplyr::case_when(
+          sched_day_type_coded_num == 0 ~ . / 255,
+          sched_day_type_coded_num == 1 ~ . / 52,
+          sched_day_type_coded_num == 2 ~ . / 58
+        )
+      )) %>%
+      dplyr::arrange(
+        service_change_num,
+        service_rte_num,
+        sched_day_type_coded_num
+      ) |>
+      dplyr::left_join(route_classification) %>%
+      dplyr::mutate(dplyr::across(platform_miles:ons, ~ as.numeric(.)))
+  } else if (
+    (period_type == "service_guidelines" &
+      current_service_change %in% service_change &
+      length(service_change) != 1)
+  ) {
+    #get both trip_productivity data for past sc and vw_trip_summary for current sc. Warn user about multiple data sources
+    past_service_changes <- service_change[
+      !service_change %in% current_service_change
+    ]
 
-    janitor::clean_names() %>%
-    dplyr::arrange(
-      service_change_num,
-      service_rte_num,
-      sched_day_type_coded_num
-    ) |>
-    dplyr::left_join(route_classification)
+    trip_productivity_past <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "Select [SERVICE_CHANGE_NUM] 
+                     ,SCHED_DAY_TYPE_CODED_NUM
+                     ,[SERVICE_RTE_NUM]
+                     ,[EXPRESS_LOCAL_CD]
+                     ,productivity_period
+                     ,sum(annl_sched_plat_miles) as platform_miles
+                     ,sum(annl_sched_plat_hrs) as platform_hours
+                     ,sum([Annl_PSNGR_MILES]) as avg_psngr_miles
+                     ,sum([Annl_PSNGR_BOARDINGS]) as ons
+                     ,count(trip_id) as trip_count
+                     FROM [DP].[trip_productivity]
+                     WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
+                     AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+                     GROUP BY [SERVICE_CHANGE_NUM], 
+                     [SERVICE_RTE_NUM],  
+                     [EXPRESS_LOCAL_CD],
+                     [SCHED_DAY_TYPE_CODED_NUM], 
+                        productivity_period",
+        vals1 = past_service_changes,
+        vals2 = sched_day_type_coded_num,
+        .con = tbird_connection
+      )
+    ) %>%
+      janitor::clean_names() %>%
+      dplyr::mutate(dplyr::across(
+        platform_miles:ons,
+        ~ dplyr::case_when(
+          sched_day_type_coded_num == 0 ~ . / 255,
+          sched_day_type_coded_num == 1 ~ . / 52,
+          sched_day_type_coded_num == 2 ~ . / 58
+        )
+      )) %>%
+      dplyr::arrange(
+        service_change_num,
+        service_rte_num,
+        sched_day_type_coded_num
+      ) |>
+      dplyr::left_join(route_classification)
+
+    trip_productivity_current <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT [SERVICE_CHANGE_NUM] 
+                                ,SCHED_DAY_TYPE_CODED_NUM
+                                ,[DAY_PART_CD]
+                                ,[SERVICE_RTE_NUM]
+                                ,[EXPRESS_LOCAL_CD]
+                                , max(sched_start_time_mnts_after_midnt) as last_trip
+                                , min(sched_start_time_mnts_after_midnt) as first_trip
+                                ,sum(trip_miles) as platform_miles
+                                ,sum(platform_hours) as platform_hours
+                                ,sum([AVG_PSNGR_MILES]) as avg_psngr_miles
+                                ,count(trip_id) as trip_count
+                                ,sum([AVG_PSNGR_BOARDINGS]) as ons
+                                FROM [DP].[VW_TRIP_SUMMARY]
+                                 WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
+                                  AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+                                  GROUP BY [SERVICE_CHANGE_NUM], 
+                                  [SERVICE_RTE_NUM],  
+                                   [EXPRESS_LOCAL_CD],
+                                  [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
+        vals1 = current_service_change,
+        vals2 = sched_day_type_coded_num,
+        .con = tbird_connection
+      )
+    ) %>%
+      dplyr::mutate(
+        productivity_period = dplyr::case_when(
+          DAY_PART_CD == "AM" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Peak",
+          DAY_PART_CD == "MID" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Off-Peak",
+          DAY_PART_CD == "PM" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Peak",
+          DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Night",
+          DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM == 0 ~ "Night",
+          DAY_PART_CD == "AM" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
+          DAY_PART_CD == "MID" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
+          DAY_PART_CD == "PM" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Off-Peak",
+          DAY_PART_CD == "XEV" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night",
+          DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night"
+        )
+      ) %>%
+
+      janitor::clean_names() %>%
+      dplyr::arrange(
+        service_change_num,
+        service_rte_num,
+        sched_day_type_coded_num
+      ) |>
+      dplyr::left_join(route_classification) %>%
+      dplyr::group_by(
+        service_change_num,
+        service_rte_num,
+        #express_local_cd,
+        sched_day_type_coded_num,
+        svc_family,
+        productivity_period,
+        .drop = F
+      ) %>%
+      dplyr::summarise(
+        # this summarize clause is duplicated to sum across am/pm peak periods before reassigning productivity periods based on trip counts and trip start times.
+        ons = sum(ons, na.rm = T),
+        platform_miles = sum(as.numeric(platform_miles), na.rm = T),
+        avg_psngr_miles = sum(as.numeric(avg_psngr_miles), na.rm = T),
+        platform_hours = sum(as.numeric(platform_hours), na.rm = T),
+        trip_count = sum(as.numeric(trip_count), na.rm = T),
+        last_trip = max(last_trip, na.rm = T),
+        first_trip = min(first_trip, na.rm = T)
+      ) %>%
+      dplyr::mutate(
+        productivity_period = dplyr::case_when(
+          productivity_period == "Night" &
+            sched_day_type_coded_num == 0 &
+            trip_count < 5 &
+            last_trip < 1200 ~ "Peak",
+          productivity_period == "Night" &
+            sched_day_type_coded_num != 0 &
+            trip_count < 5 &
+            last_trip < 1200 ~ "Off-Peak",
+          productivity_period == "Peak" &
+            sched_day_type_coded_num == 0 &
+            trip_count < 8 &
+            last_trip < 1020 &
+            first_trip > 450 ~ "Off-Peak",
+          TRUE ~ productivity_period
+        )
+      )
+  }
 
   if (period_type == "day_part_cd") {
     cli::cli_inform(
       message = "Grouping productivity results by AM, MID, PM, XEV, XNT definitions. Whole-day productivity included in results as well."
+    )
+    cli::cli_warn(
+      message = "Data drawn from dp.vw_trip_summary which can produce numbers slightly different than office system evaluation productivity figures."
     )
     # weekday by period
     route_productivity_day_part <- trip_productivity %>%
@@ -138,6 +347,11 @@ get_route_productivity <- function(
           probs = c(.25),
           na.rm = T
         ),
+        median_threshold_rides = stats::quantile(
+          rides_per_platform_hour,
+          probs = c(.50),
+          na.rm = T
+        ),
         top_25_threshold_rides = stats::quantile(
           rides_per_platform_hour,
           probs = c(.75),
@@ -146,6 +360,11 @@ get_route_productivity <- function(
         bottom_25_threshold_miles = stats::quantile(
           psngr_miles_per_platform_mile,
           probs = c(.25),
+          na.rm = T
+        ),
+        median_threshold_miles = stats::quantile(
+          psngr_miles_per_platform_mile,
+          probs = c(.50),
           na.rm = T
         ),
         top_25_threshold_miles = stats::quantile(
@@ -190,6 +409,11 @@ get_route_productivity <- function(
           probs = c(.25),
           na.rm = T
         ),
+        median_threshold_rides = stats::quantile(
+          rides_per_platform_hour,
+          probs = c(.50),
+          na.rm = T
+        ),
         top_25_threshold_rides = stats::quantile(
           rides_per_platform_hour,
           probs = c(.75),
@@ -198,6 +422,11 @@ get_route_productivity <- function(
         bottom_25_threshold_miles = stats::quantile(
           psngr_miles_per_platform_mile,
           probs = c(.25),
+          na.rm = T
+        ),
+        median_threshold_miles = stats::quantile(
+          psngr_miles_per_platform_mile,
+          probs = c(.50),
           na.rm = T
         ),
         top_25_threshold_miles = stats::quantile(
@@ -240,50 +469,58 @@ get_route_productivity <- function(
         )
       ) %>%
       dplyr::mutate(
-        bottom_rides = dplyr::case_when(
-          rides_per_platform_hour <= bottom_25_threshold_rides ~ 1,
+        rides_quantile = dplyr::case_when(
+          rides_per_platform_hour < bottom_25_threshold_rides ~ 1,
+          rides_per_platform_hour >= bottom_25_threshold_rides &
+            rides_per_platform_hour < median_threshold_rides ~ 2,
+          rides_per_platform_hour >= median_threshold_rides &
+            rides_per_platform_hour < top_25_threshold_rides ~ 3,
+          rides_per_platform_hour >= top_25_threshold_rides ~ 4,
           TRUE ~ 0
         ),
-        top_rides = dplyr::case_when(
-          rides_per_platform_hour >= top_25_threshold_rides ~ 1,
-          TRUE ~ 0
-        ),
-        bottom_miles = dplyr::case_when(
-          psngr_miles_per_platform_mile <= bottom_25_threshold_miles ~ 1,
-          TRUE ~ 0
-        ),
-        top_miles = dplyr::case_when(
-          psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 1,
+
+        miles_quantile = dplyr::case_when(
+          psngr_miles_per_platform_mile < bottom_25_threshold_miles ~ 1,
+          psngr_miles_per_platform_mile >= bottom_25_threshold_miles &
+            psngr_miles_per_platform_mile < median_threshold_miles ~ 2,
+          psngr_miles_per_platform_mile >= median_threshold_miles &
+            psngr_miles_per_platform_mile < top_25_threshold_miles ~ 3,
+          psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 4,
           TRUE ~ 0
         )
       ) |>
       dplyr::select(
-        -c(dplyr::starts_with("bottom_25") | dplyr::starts_with("top_25"))
-      ) # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
-    dplyr::mutate(
-      yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
-      season_num = stringr::str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
-      # Convert Season Digit to Text
-      season = dplyr::case_match(
-        season_num,
-        "1" ~ "Spring",
-        "2" ~ "Summer",
-        "3" ~ "Fall"
-      ),
-      # Convert Year Digits to YYYY
-      year = dplyr::case_when(
-        yr > 90 ~ stringr::str_c("19", yr), # 1991-1999
-        yr == "" ~ "2000", # 2000
-        yr %in% 1:10 ~ stringr::str_c("200", yr), # 2001-2009
-        yr >= 10 ~ stringr::str_c("20", yr), # > 2010
-        TRUE ~ NA
-      ),
-      day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
-      service = stats::reorder(
-        paste(season, year),
-        as.numeric(stringr::str_c(year, season_num))
-      )
-    ) %>%
+        -c(
+          dplyr::starts_with("bottom_25") |
+            dplyr::starts_with("top_25") |
+            dplyr::starts_with("median")
+        )
+      ) |>
+      # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
+      dplyr::mutate(
+        yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
+        season_num = stringr::str_extract(service_change_num, "[1-3]$"), # Extract Season Digit
+        # Convert Season Digit to Text
+        season = dplyr::case_match(
+          season_num,
+          "1" ~ "Spring",
+          "2" ~ "Summer",
+          "3" ~ "Fall"
+        ),
+        # Convert Year Digits to YYYY
+        year = dplyr::case_when(
+          yr > 90 ~ stringr::str_c("19", yr), # 1991-1999
+          yr == "" ~ "2000", # 2000
+          yr %in% 1:10 ~ stringr::str_c("200", yr), # 2001-2009
+          yr >= 10 ~ stringr::str_c("20", yr), # > 2010
+          TRUE ~ NA
+        ),
+        day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
+        service = stats::reorder(
+          paste(season, year),
+          as.numeric(stringr::str_c(year, season_num))
+        )
+      ) %>%
       ServicePlanningFunctions::clean_service_rte_name(as.character(
         service_rte_num
       )) %>%
@@ -302,46 +539,34 @@ get_route_productivity <- function(
     cli::cli_inform(
       message = "Grouping productivity results by Peak, Off-Peak, and Night definitions."
     )
-    # weekday by period
-    route_productivity <- trip_productivity %>%
-      dplyr::group_by(
-        service_change_num,
-        service_rte_num,
-        #express_local_cd,
-        sched_day_type_coded_num,
-        svc_family,
-        productivity_period,
-        .drop = F
-      ) %>%
 
-      dplyr::summarise(
-        # this summarize clause is duplicated to sum across am/pm peak periods before reassigning productivity periods based on trip counts and trip start times.
-        ons = sum(ons, na.rm = T),
-        platform_miles = sum(platform_miles, na.rm = T),
-        avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
-        platform_hours = sum(platform_hours, na.rm = T),
-        trip_count = sum(trip_count, na.rm = T),
-        last_trip = max(last_trip, na.rm = T),
-        first_trip = min(first_trip, na.rm = T)
-      ) %>%
-      dplyr::mutate(
-        productivity_period = dplyr::case_when(
-          productivity_period == "Night" &
-            sched_day_type_coded_num == 0 &
-            trip_count < 5 &
-            last_trip < 1200 ~ "Peak",
-          productivity_period == "Night" &
-            sched_day_type_coded_num != 0 &
-            trip_count < 5 &
-            last_trip < 1200 ~ "Off-Peak",
-          productivity_period == "Peak" &
-            sched_day_type_coded_num == 0 &
-            trip_count < 8 &
-            last_trip < 1020 &
-            first_trip > 250 ~ "Off-Peak",
-          TRUE ~ productivity_period
-        )
-      ) |>
+    if (
+      (period_type == "service_guidelines" &
+        current_service_change %in% service_change &
+        length(service_change) != 1)
+    ) {
+      route_productivity_df <- dplyr::bind_rows(
+        trip_productivity_past,
+        trip_productivity_current
+      )
+
+      cli::cli_warn(
+        message = "Results include data for current service change which may differ from final System Evaluation results."
+      )
+    } else if (
+      (period_type == "service_guidelines" &
+        current_service_change %in% service_change &
+        length(service_change) == 1)
+    ) {
+      route_productivity_df <- trip_productivity
+      cli::cli_warn(
+        message = "Returning data for current service change which may differ from final System Evaluation results."
+      )
+    } else {
+      route_productivity_df <- trip_productivity
+    }
+
+    route_productivity <- route_productivity_df %>%
       dplyr::group_by(
         service_change_num,
         service_rte_num,
@@ -350,15 +575,12 @@ get_route_productivity <- function(
         svc_family,
         productivity_period
       ) %>%
-
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
         platform_miles = sum(platform_miles, na.rm = T),
         avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
         platform_hours = sum(platform_hours, na.rm = T),
-        trip_count = sum(trip_count, na.rm = T),
-        last_trip = max(last_trip, na.rm = T),
-        first_trip = min(first_trip, na.rm = T)
+        trip_count = sum(trip_count, na.rm = T)
       ) %>%
       dplyr::mutate(
         rides_per_platform_hour = (ons / platform_hours),
@@ -385,6 +607,11 @@ get_route_productivity <- function(
           probs = c(.25),
           na.rm = T
         ),
+        median_threshold_rides = stats::quantile(
+          rides_per_platform_hour,
+          probs = c(.50),
+          na.rm = T
+        ),
         top_25_threshold_rides = stats::quantile(
           rides_per_platform_hour,
           probs = c(.75),
@@ -393,6 +620,11 @@ get_route_productivity <- function(
         bottom_25_threshold_miles = stats::quantile(
           psngr_miles_per_platform_mile,
           probs = c(.25),
+          na.rm = T
+        ),
+        median_threshold_miles = stats::quantile(
+          psngr_miles_per_platform_mile,
+          probs = c(.50),
           na.rm = T
         ),
         top_25_threshold_miles = stats::quantile(
@@ -413,25 +645,32 @@ get_route_productivity <- function(
         )
       ) %>%
       dplyr::mutate(
-        bottom_rides = dplyr::case_when(
-          rides_per_platform_hour <= bottom_25_threshold_rides ~ 1,
+        rides_quantile = dplyr::case_when(
+          rides_per_platform_hour < bottom_25_threshold_rides ~ 1,
+          rides_per_platform_hour >= bottom_25_threshold_rides &
+            rides_per_platform_hour < median_threshold_rides ~ 2,
+          rides_per_platform_hour >= median_threshold_rides &
+            rides_per_platform_hour < top_25_threshold_rides ~ 3,
+          rides_per_platform_hour >= top_25_threshold_rides ~ 4,
           TRUE ~ 0
         ),
-        top_rides = dplyr::case_when(
-          rides_per_platform_hour >= top_25_threshold_rides ~ 1,
-          TRUE ~ 0
-        ),
-        bottom_miles = dplyr::case_when(
-          psngr_miles_per_platform_mile <= bottom_25_threshold_miles ~ 1,
-          TRUE ~ 0
-        ),
-        top_miles = dplyr::case_when(
-          psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 1,
+
+        miles_quantile = dplyr::case_when(
+          psngr_miles_per_platform_mile < bottom_25_threshold_miles ~ 1,
+          psngr_miles_per_platform_mile >= bottom_25_threshold_miles &
+            psngr_miles_per_platform_mile < median_threshold_miles ~ 2,
+          psngr_miles_per_platform_mile >= median_threshold_miles &
+            psngr_miles_per_platform_mile < top_25_threshold_miles ~ 3,
+          psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 4,
           TRUE ~ 0
         )
       ) |>
       dplyr::select(
-        -c(dplyr::starts_with("bottom_25") | dplyr::starts_with("top_25"))
+        -c(
+          dplyr::starts_with("bottom_25") |
+            dplyr::starts_with("top_25") |
+            dplyr::starts_with("median")
+        )
       ) |>
       # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
       dplyr::mutate(
