@@ -35,7 +35,8 @@ get_route_productivity <- function(
     tbird_connection,
     glue::glue_sql(
       "select service_change_num 
-          where full_date = ({vals1*})
+            from edw.dim_date
+             where full_date =  cast(({vals1*}) as date)
             ",
       vals1 = lubridate::today(),
       .con = tbird_connection
@@ -442,7 +443,7 @@ get_route_productivity <- function(
       route_productivity_day
     ) %>%
       dplyr::mutate(
-        weekday = dplyr::case_when(
+        day = dplyr::case_when(
           sched_day_type_coded_num == 0 ~ "Weekday",
           sched_day_type_coded_num == 1 ~ "Saturday",
           sched_day_type_coded_num == 2 ~ "Sunday"
