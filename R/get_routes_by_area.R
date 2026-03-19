@@ -94,8 +94,22 @@ get_stops_by_area <- function(
     netplan_gtfs = FALSE
   )
 
-  #get area boundary from raw_data folder
-  #filter to polygon(s) identified
+  shapes <- DBI::dbGetQuery(
+    tbird_connection,
+    glue::glue_sql(
+      "SELECT *
+      from gtfs.shapes
+      where capture_date = (SELECT top 1 capture_date
+      from gtfs.shapes
+      where capture_date <= cast({(vals1)} as date)
+      order by capture_date desc)",
+      vals1 = gtfs_date,
+      .con = tbird_connection
+    )
+  )
+
+  # get area boundary from raw_data folder
+  # filter to polygon(s) identified
 
   geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
     dplyr::filter(NAME %in% area) |>
@@ -111,34 +125,35 @@ get_stops_by_area <- function(
 
   stop_ids <- as.vector(filtered_stops$stop_id)
 
-  filtered_stop_times <- stop_times |>
+  filtered_trips <- stop_times |>
     dplyr::filter(stop_id %in% stop_ids) |>
     dplyr::left_join(trips) |>
     dplyr::left_join(gtfs_clean_routes) |>
     dplyr::select(
-      stop_id,
+      trip_id,
       route_id,
       service_rte_num,
       route_short_name,
       route_long_name
     ) |>
     dplyr::distinct(
-      stop_id,
+      trip_id,
       route_id,
       service_rte_num,
       route_short_name,
       route_long_name
-    ) |>
-    dplyr::group_by(stop_id) |>
-    dplyr::mutate(routes_at_stop = toString(service_rte_num))
+    )
 
-  map_data <- filtered_stops |>
-    dplyr::left_join(filtered_stop_times)
+  routes_in_area <- shapes |>
+    dplyr::filter(trip_id %in% filtered_trips$trip_id) |>
+    dplyr::left_join(gtfs_clean_routes) |>
+    sf::st_as_sf(coords = c(shape_pt_lon, shape_pt_lat), crs = 4326) |>
+    sf::st_transform(crs = 2926)
 
   if (return_type == "table") {
-    map_data
+    routes_in_area
   } else if (return_type == "interactive_map") {
-    mapview::mapview(map_data, zcol = "service_rte_num")
+    mapview::mapview(routes_in_area, zcol = "service_rte_num")
   } else {
     cli::cli_abort(
       message = "Incorrect return type parameter. Options are 'table' or 'interactive_map'. The 'table' option returns a spatial dataframe."
