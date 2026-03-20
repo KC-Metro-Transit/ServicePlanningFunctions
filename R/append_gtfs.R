@@ -32,7 +32,13 @@ append_gtfs <- function(
   )
   proposed_gtfs <- proposed_gtfs[
     !proposed_gtfs %in%
-      c("stops.txt", "stop_times.txt", "error_warning.txt", "routes.txt")
+      c(
+        "stops.txt",
+        "stop_times.txt",
+        "error_warning.txt",
+        "routes.txt",
+        "trips.txt"
+      )
   ]
 
   proposed <- lapply(proposed_gtfs, function(x) {
@@ -45,6 +51,25 @@ append_gtfs <- function(
 
     return(out)
   })
+
+  proposed[[5]] <- readr::read_csv(
+    here::here(proposed_filepath, "trips.txt"),
+    col_types = list(
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c"
+    ),
+    col_names = T,
+    show_col_types = F,
+    progress = F
+  )
 
   proposed[[6]] <- readr::read_csv(
     here::here(proposed_filepath, "routes.txt"),
@@ -118,7 +143,13 @@ append_gtfs <- function(
   )
   baseline_gtfs <- baseline_gtfs[
     !baseline_gtfs %in%
-      c("stops.txt", "stop_times.txt", "error_warning.txt", "routes.txt")
+      c(
+        "stops.txt",
+        "stop_times.txt",
+        "error_warning.txt",
+        "routes.txt",
+        "trips.txt"
+      )
   ]
 
   baseline <- lapply(baseline_gtfs, function(x) {
@@ -131,6 +162,25 @@ append_gtfs <- function(
 
     return(out)
   })
+
+  baseline[[5]] <- readr::read_csv(
+    here::here(baseline_filepath, "trips.txt"),
+    col_types = list(
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c",
+      "c"
+    ),
+    col_names = T,
+    show_col_types = F,
+    progress = F
+  )
 
   baseline[[6]] <- readr::read_csv(
     here::here(baseline_filepath, "routes.txt"),
