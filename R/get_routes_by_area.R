@@ -1,4 +1,4 @@
-#' Get Stops by Area
+#' Get Routes by Area
 #'
 #' Returns a map or table of stops within a specified area. Areas are based on the LOCUS districts shapefile. Use show_areas() to see a map of all available areas.
 #'
@@ -11,7 +11,7 @@
 #'
 #' @export
 
-get_stops_by_area <- function(
+get_routes_by_area <- function(
   area,
   gtfs_date,
   tbird_connection,
