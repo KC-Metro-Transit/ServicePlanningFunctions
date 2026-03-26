@@ -7,7 +7,7 @@
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
 #'
-#' @returns
+#' @returns Table or interactive map object of routes with stops in the selected area.
 #'
 #' @export
 

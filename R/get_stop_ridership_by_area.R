@@ -1,30 +1,27 @@
-#' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). day, period, hour
-
-#' Title
+#' Get Stop Ridership by Area
 #'
-#' @param area
-#' @param gtfs_date
-#' @param service_change_num
-#' @param tbird_connection
-#' @param return_type
-#' @param day
-#' @param time_period
-#' @param x_axis
-#' @param activity_type
+#' This function returns either an interactive map of weekday stop-level ridership for the selected area or a dataframe showing ridership data for stops in the selected area.
 #'
-#' @returns
+#' @param area Character. The name of the LOCUS district of interest. Can accept multiples.
+#' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
+#' @param tbird_connection The connection object created by connect_to_tbird()
+#' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
+#' @param service_change_num Numeric. The three-digit identifier of the service change.
+#'  Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.
+#' @param time_period Character. AM, PM, MID, XEV. XNT.
+#' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
+#'
+#' @returns Interactive map object or dataframe of stop ridership summed by selected periods.
 #'
 #' @export
-#' @examples
+
 get_stop_ridership_by_area <- function(
   area,
   gtfs_date,
   service_change_num,
   tbird_connection,
   return_type,
-  day = c("Weekday", "Saturday", "Sunday"),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  x_axis,
   activity_type = 'ons'
 ) {
   stops <- get_stops_by_area(
@@ -34,7 +31,7 @@ get_stop_ridership_by_area <- function(
     return_type = "table"
   ) |>
     sf::st_as_sf()
-  print(class(stops))
+
   stop_ids <- unique(stops$stop_id)
 
   rides <- get_stop_ridership(
@@ -42,29 +39,29 @@ get_stop_ridership_by_area <- function(
     stop_id = stop_ids,
     route = "All",
     tbird_connection = tbird_connection
-  )
-
-  data <- rides %>%
+  ) %>%
     dplyr::filter(
-      day %in% day,
       day_part_cd %in% time_period,
-      service_change_num %in% .env$service_change_num #,
-      # route %in% .env$route
+      service_change_num %in% .env$service_change_num
     ) %>%
     dplyr::rename(period = time_period_at_stop)
 
-  plot_data <- data %>%
+  plot_data <- rides %>%
     dplyr::group_by_at(dplyr::vars(
       service_change_num,
       service,
-      x_axis,
-      stop_id
+      stop_id,
+      bearing_cd,
+      host_street_nm,
+      cross_street_nm
     )) %>%
     dplyr::select(
       service_change_num,
       service,
       stop_id,
-      'axis' = x_axis,
+      bearing_cd,
+      host_street_nm,
+      cross_street_nm,
       ons,
       offs
     ) %>%
@@ -88,10 +85,115 @@ get_stop_ridership_by_area <- function(
         variable == 'rider' ~ 'Average Daily Stop Ridership',
         TRUE ~ variable
       )
+    ) |>
+    dplyr::mutate(
+      size = ((60 * sqrt(abs(value))) / sqrt(max(value)))
     )
 
-  geo_rides <- stops |>
-    dplyr::left_join(plot_data, by = c("stop_id" = "stop_id"))
+  if (return_type == "table") {
+    out <- plot_data |>
+      dplyr::select(-size)
+    out
+  } else if (return_type == "interactive_map") {
+    if (length(service_change_num) != 1) {
+      cli::cli_abort(message = "Chose only 1 service change for each map.")
+    } else {
+      map_type_label <- unique(plot_data$variable)
+      map_type_label <- stringr::str_flatten_comma(map_type_label)
 
-  mapview::mapview(geo_rides, zcol = "value")
+      time_period_data <- factor(
+        unique(data$period),
+        levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
+        labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
+        ordered = TRUE
+      )
+
+      time_period_data <- sort(time_period_data)
+
+      time_period_label <- stringr::str_flatten_comma(time_period_data)
+
+      geo_rides <- stops |>
+        dplyr::select(-c(route_id, service_rte_num, route_short_name)) |>
+        dplyr::distinct(.keep_all = TRUE) |>
+        dplyr::left_join(plot_data, by = c("stop_id" = "stop_id")) |>
+        sf::st_transform(4326)
+
+      pal <- leaflet::colorBin(
+        palette = c(
+          "#FDB71A",
+          "#FF7B21",
+          "#31859F",
+          "#006633",
+          "#390854"
+        ),
+        domain = plot_data$value,
+        reverse = FALSE,
+        pretty = FALSE,
+        bins = 5
+      )
+
+      ons_map <- leaflet::leaflet(geo_rides) %>%
+        leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
+
+        leaflet::addCircleMarkers(
+          data = geo_rides,
+          fillColor = ~ pal(geo_rides$value),
+          stroke = FALSE,
+          fillOpacity = .75,
+          weight = .5,
+          opacity = 1,
+          color = "white",
+          label = ~ geo_rides$value,
+          radius = 5, #~ geo_rides$size /
+          labelOptions = leaflet::labelOptions(
+            style = list("font-weight" = "normal", padding = "3px 8px"),
+            textsize = "15px",
+            direction = "auto"
+          ),
+          popup = paste(
+            "<b>",
+            geo_rides$stop_id,
+            "<br>",
+            geo_rides$service,
+            "</b>",
+            "<br>",
+            "On Street:",
+            geo_rides$host_street_nm,
+            "<br>",
+            "Cross Street:",
+            geo_rides$cross_street_nm,
+            "<br>",
+            "Bearing Code:",
+            geo_rides$bearing_cd,
+            "<br>",
+            "Routes at Stop:",
+            geo_rides$routes_at_stop,
+            "<br>",
+            map_type_label,
+            ":",
+            geo_rides$value,
+            "<br>"
+          )
+        ) %>%
+
+        leaflet::addLegend(
+          position = "bottomright",
+          pal = pal,
+          values = plot_data$value,
+          opacity = .75,
+          title = paste(
+            map_type_label,
+            "<br>",
+            time_period_label,
+            "<br>"
+          )
+        )
+
+      ons_map
+    }
+  } else {
+    cli::cli_alert_info(
+      text = "Incorrect return_type parameter. Options are 'interactive_map' or 'table'."
+    )
+  }
 }
