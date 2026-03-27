@@ -1,9 +1,9 @@
+#' ggplot engine for stop level ridership plots
 #' Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_trip_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
-#' @param day Character. Day of the week. Weekday, Saturday, Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). day, period, hour, route, route_name.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
@@ -15,7 +15,6 @@ plot_stop_crosstab <- function(
   dataframe,
   service_change_num,
   route,
-  day = c("Weekday", "Saturday", "Sunday"),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis,
   activity_type = 'ons'

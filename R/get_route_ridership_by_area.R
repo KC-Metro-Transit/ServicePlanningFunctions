@@ -1,26 +1,31 @@
-#' Get Stop Ridership by Area
+#' Get Route Ridership by Area
 #'
-#' This function returns either an interactive map of weekday stop-level ridership for the selected area or a dataframe showing ridership data for stops in the selected area.
+#' This function returns either an interactive map of route  ridership for the selected area or a dataframe showing ridership data for routes that serve the selected area.
+
 #'
 #' @param area Character. The name of the LOCUS district of interest. Can accept multiples.
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
-#' @param tbird_connection The connection object created by connect_to_tbird()
-#' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
 #' @param service_change_num Numeric. The three-digit identifier of the service change.
 #'  Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.
+#' @param tbird_connection The connection object created by connect_to_tbird()
+#' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
+#' @param sched_day_type_coded_num Numeric. 0 = Weekday, 1 = Saturday, 2 = Sunday. Can accept multiples.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #'
-#' @returns Interactive map object or dataframe of stop ridership summed by selected periods.
+#'
+#' @returns Interactive map object or dataframe of route ridership summed by selected periods.
+#'
 #'
 #' @export
 
-get_stop_ridership_by_area <- function(
+get_route_ridership_by_area <- function(
   area,
   gtfs_date,
   service_change_num,
   tbird_connection,
   return_type,
+  sched_day_type_coded_num,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons'
 ) {
@@ -28,45 +33,41 @@ get_stop_ridership_by_area <- function(
     area = area,
     gtfs_date = gtfs_date,
     tbird_connection = tbird_connection,
-    return_type = "table"
-  ) |>
-    sf::st_as_sf()
+  )
 
-  route_ids <- unique(stops$stop_id)
+  route_ids <- unique(routes$service_rte_num)
 
-  rides <- get_stop_ridership(
+  rides <- get_trip_ridership(
     service_change_num = service_change_num,
-    stop_id = stop_ids,
-    route = "All",
+    sched_day_type_coded_num = sched_day_type_coded_num,
+    route = route_ids,
     tbird_connection = tbird_connection
   ) %>%
     dplyr::filter(
       day_part_cd %in% time_period,
-      service_change_num %in% .env$service_change_num
-    ) %>%
-    dplyr::rename(period = time_period_at_stop)
+      service_change_num %in% service_change_num
+    ) |>
+    dplyr::mutate(service_rte_num = as.character(route))
 
   plot_data <- rides %>%
     dplyr::group_by_at(dplyr::vars(
       service_change_num,
       service,
-      stop_id,
-      bearing_cd,
-      host_street_nm,
-      cross_street_nm
+      route_name,
+      service_rte_num
     )) %>%
     dplyr::select(
       service_change_num,
       service,
-      stop_id,
-      bearing_cd,
-      host_street_nm,
-      cross_street_nm,
+      route_name,
+      service_rte_num,
       ons,
+      avg_load,
       offs
     ) %>%
     dplyr::summarise(
       dplyr::across(ons:offs, sum, na.rm = TRUE),
+      dplyr::across(avg_load, mean, na.rm = TRUE),
       .groups = 'drop'
     ) %>%
     dplyr::mutate(rider = ons + offs) %>%
@@ -80,9 +81,10 @@ get_stop_ridership_by_area <- function(
     ) %>%
     dplyr::mutate(
       variable = dplyr::case_when(
-        variable == 'ons' ~ 'Average Daily Stop Boardings',
-        variable == 'offs' ~ 'Average Daily Stop Alightings',
-        variable == 'rider' ~ 'Average Daily Stop Ridership',
+        variable == 'ons' ~ 'Average Daily Boardings',
+        variable == 'offs' ~ 'Average Daily Alightings',
+        variable == 'rider' ~ 'Average Daily Ridership',
+        variable == 'avg_load' ~ 'Average Max Load ',
         TRUE ~ variable
       )
     )
@@ -93,7 +95,7 @@ get_stop_ridership_by_area <- function(
     map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
 
     time_period_data <- factor(
-      unique(data$period),
+      unique(rides$period),
       levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
       labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
       ordered = TRUE
@@ -101,14 +103,22 @@ get_stop_ridership_by_area <- function(
 
     time_period_label <- stringr::str_flatten_comma(sort(time_period_data))
 
-    geo_rides <- stops |>
-      dplyr::select(-c(route_id, service_rte_num, route_short_name)) |>
-      dplyr::distinct(.keep_all = TRUE) |>
-      dplyr::left_join(plot_data, by = c("stop_id" = "stop_id")) |>
+    day_data <- factor(
+      unique(rides$day),
+      levels = c("Weekday", "Saturday", "Sunday"),
+      labels = c("Weekday", "Saturday", "Sunday"),
+      ordered = TRUE
+    )
+    day_label <- stringr::str_flatten_comma(sort(day_data))
+    geo_rides <- routes |>
+      dplyr::left_join(
+        plot_data,
+        by = c("service_rte_num" = "service_rte_num")
+      ) |>
       sf::st_transform(4326)
   }
   if (return_type == "table") {
-    geo_rides
+    plot_data
   } else if (return_type == "interactive_map") {
     geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
       janitor::clean_names() |>
@@ -140,16 +150,13 @@ get_stop_ridership_by_area <- function(
         weight = 5,
         dashArray = c("6")
       ) |>
-      leaflet::addCircleMarkers(
+      leaflet::addPolylines(
         data = geo_rides,
-        fillColor = ~ pal(geo_rides$value),
-        stroke = FALSE,
-        fillOpacity = .75,
-        weight = .5,
+        color = ~ pal(geo_rides$value),
+        stroke = TRUE,
+        weight = 3,
         opacity = 1,
-        color = "white",
         label = ~ geo_rides$value,
-        radius = 5, #~ geo_rides$size /
         labelOptions = leaflet::labelOptions(
           style = list("font-weight" = "normal", padding = "3px 8px"),
           textsize = "15px",
@@ -157,22 +164,10 @@ get_stop_ridership_by_area <- function(
         ),
         popup = paste(
           "<b>",
-          geo_rides$stop_id,
+          geo_rides$route_name,
           "<br>",
           geo_rides$service,
           "</b>",
-          "<br>",
-          "On Street:",
-          geo_rides$host_street_nm,
-          "<br>",
-          "Cross Street:",
-          geo_rides$cross_street_nm,
-          "<br>",
-          "Bearing Code:",
-          geo_rides$bearing_cd,
-          "<br>",
-          "Routes at Stop:",
-          geo_rides$routes_at_stop,
           "<br>",
           map_type_label,
           ":",
@@ -188,6 +183,8 @@ get_stop_ridership_by_area <- function(
         opacity = .75,
         title = paste(
           map_type_label,
+          "<br>",
+          day_label,
           "<br>",
           time_period_label,
           "<br>"

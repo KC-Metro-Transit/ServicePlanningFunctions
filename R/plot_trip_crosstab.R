@@ -38,8 +38,8 @@ plot_trip_crosstab <- function(
       ons:avg_load
     ) %>%
     dplyr::summarise(
-      across(ons:offs, sum, na.rm = TRUE),
-      across(avg_load, mean, na.rm = TRUE),
+      dplyr::across(ons:offs, sum, na.rm = TRUE),
+      dplyr::across(avg_load, mean, na.rm = TRUE),
       .groups = 'drop'
     ) %>%
     dplyr::mutate(rider = ons + offs) %>%
@@ -52,7 +52,7 @@ plot_trip_crosstab <- function(
       variable == activity_type,
     ) %>%
     dplyr::mutate(
-      variable = case_match(
+      variable = dplyr::case_match(
         variable,
         'ons' ~ 'Average Daily Boardings',
         'offs' ~ 'Average Daily Alightings',

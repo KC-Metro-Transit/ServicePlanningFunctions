@@ -130,6 +130,7 @@ get_stops_by_area <- function(
       route_long_name
     ) |>
     dplyr::group_by(stop_id) |>
+    dplyr::arrange(service_rte_num, .by_group = TRUE) |>
     dplyr::mutate(routes_at_stop = toString(service_rte_num))
 
   map_data <- filtered_stops |>

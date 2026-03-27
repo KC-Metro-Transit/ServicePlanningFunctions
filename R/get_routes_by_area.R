@@ -63,6 +63,7 @@ get_routes_by_area <- function(
       service_id, 
       block_id,
       shape_id,
+      direction_id,
       capture_date
       from gtfs.trips
       where capture_date = (SELECT top 1 capture_date
@@ -72,7 +73,16 @@ get_routes_by_area <- function(
       vals1 = gtfs_date,
       .con = tbird_connection
     )
-  )
+  ) |>
+    janitor::clean_names() |>
+    dplyr::mutate(
+      direction = dplyr::case_when(
+        direction_id == 1 ~ 'I',
+        direction_id == 0 ~ 'O',
+        TRUE ~ ""
+      )
+    )
+
   gtfs_routes <- DBI::dbGetQuery(
     tbird_connection,
     glue::glue_sql(
@@ -106,8 +116,10 @@ get_routes_by_area <- function(
       vals1 = gtfs_date,
       .con = tbird_connection
     )
-  )
+  ) |>
+    janitor::clean_names()
 
+  shapes <- tidytransit::shapes_as_sf(shapes, crs = 4326)
   # get area boundary from raw_data folder
   # filter to polygon(s) identified
 
@@ -132,6 +144,8 @@ get_routes_by_area <- function(
     dplyr::select(
       trip_id,
       route_id,
+      shape_id,
+      direction,
       service_rte_num,
       route_short_name,
       route_long_name
@@ -139,16 +153,27 @@ get_routes_by_area <- function(
     dplyr::distinct(
       trip_id,
       route_id,
+      shape_id,
       service_rte_num,
+      direction,
       route_short_name,
       route_long_name
-    )
+    ) |>
+    dplyr::mutate(shape_id = as.character(shape_id))
 
   routes_in_area <- shapes |>
-    dplyr::filter(trip_id %in% filtered_trips$trip_id) |>
-    dplyr::left_join(gtfs_clean_routes) |>
-    sf::st_as_sf(coords = c(shape_pt_lon, shape_pt_lat), crs = 4326) |>
-    sf::st_transform(crs = 2926)
+    dplyr::filter(shape_id %in% filtered_trips$shape_id) |>
+    dplyr::left_join(
+      filtered_trips
+    ) |>
+    dplyr::select(
+      service_rte_num,
+      route_short_name,
+      route_long_name,
+      shape_id,
+      direction,
+      geometry
+    )
 
   if (return_type == "table") {
     routes_in_area

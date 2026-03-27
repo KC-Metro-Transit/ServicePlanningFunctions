@@ -2,7 +2,8 @@
 % Please edit documentation in R/plot_route_by_service_change.R
 \name{plot_route_by_service_change}
 \alias{plot_route_by_service_change}
-\title{Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()}
+\title{ggplot engine for route level ridership plots
+Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()}
 \usage{
 plot_route_by_service_change(
   dataframe,
@@ -30,5 +31,6 @@ plot_route_by_service_change(
 ggplot2 object
 }
 \description{
+ggplot engine for route level ridership plots
 Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()
 }

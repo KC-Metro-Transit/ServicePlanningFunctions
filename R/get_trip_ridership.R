@@ -89,16 +89,16 @@ SELECT [SERVICE_CHANGE_NUM]
       ),
       # Convert Year Digits to YYYY
       year = dplyr::case_when(
-        yr > 90 ~ str_c("19", yr), # 1991-1999
+        yr > 90 ~ stringr::str_c("19", yr), # 1991-1999
         yr == "" ~ "2000", # 2000
-        yr %in% 1:10 ~ str_c("200", yr), # 2001-2009
-        yr >= 10 ~ str_c("20", yr), # > 2010
+        yr %in% 1:10 ~ stringr::str_c("200", yr), # 2001-2009
+        yr >= 10 ~ stringr::str_c("20", yr), # > 2010
         TRUE ~ NA
       ),
       day = factor(day, levels = c("Weekday", "Saturday", "Sunday")),
       service = stats::reorder(
         paste(season, year),
-        as.numeric(str_c(year, season_num))
+        as.numeric(stringr::str_c(year, season_num))
       )
     ) %>%
     ServicePlanningFunctions::clean_service_rte_name(as.character(route)) %>%
