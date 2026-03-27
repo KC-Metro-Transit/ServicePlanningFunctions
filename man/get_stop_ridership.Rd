@@ -11,7 +11,7 @@ get_stop_ridership(service_change_num, route, stop_id, tbird_connection)
 \item{service_change_num}{Numeric. The three-digit identifier of the service change.
 Can accept multiple values as a vector.}
 
-\item{route}{Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
+\item{route}{Numeric. The route identifiers of interest or "All" to return all routes. Values to be treated as characters to allow for non-numeric route identifiers.
 Can accept multiple values as a vector.}
 
 \item{stop_id}{A vector of stop IDs or "All" if all stops on a route are of interest.}
