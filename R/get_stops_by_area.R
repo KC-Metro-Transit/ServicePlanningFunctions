@@ -6,7 +6,7 @@
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
-#'
+#' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
 #' @returns Interactive map object or table of stops in selected area.
 #'
 #' @export
@@ -15,7 +15,8 @@ get_stops_by_area <- function(
   area,
   gtfs_date,
   tbird_connection,
-  return_type
+  return_type,
+  data_source
 ) {
   #get gtfs data that best matches gtfs_date from tbird
 
@@ -97,9 +98,23 @@ get_stops_by_area <- function(
   #get area boundary from raw_data folder
   #filter to polygon(s) identified
 
-  geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
-    dplyr::filter(NAME %in% area) |>
-    sf::st_transform(2926)
+  if (data_source == "LOCUS") {
+    geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
+      dplyr::filter(NAME %in% area) |>
+      sf::st_transform(2926)
+  } else if (data_source == "King County Council Districts") {
+    geography <- sf::read_sf(here::here(
+      'data_raw',
+      'king_county_council_districts.shp'
+    )) |>
+      dplyr::rename(name = area) |>
+      dplyr::filter(name %in% area) |>
+      sf::st_transform(2926)
+  } else {
+    cli::cli_abort(
+      message = "Incorrect data_source  parameter. Options are 'LOCUS' or 'King County Council Districts'."
+    )
+  }
 
   #id stops & routes within boundary
 
