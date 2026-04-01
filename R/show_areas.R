@@ -10,11 +10,16 @@
 
 show_areas <- function(return_type = "interactive_map", data_source = "LOCUS") {
   if (data_source == "LOCUS") {
-    geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp'))
-  } else if (data_source == "King County Council Districts") {
-    geography <- sf::read_sf(here::here(
+    geography <- sf::read_sf(fs::path_package(
       'data_raw',
-      'king_county_council_districts.shp'
+      'SASR_LocusZones.shp',
+      package = "ServicePlanningFunctions"
+    ))
+  } else if (data_source == "King County Council Districts") {
+    geography <- sf::read_sf(fs::path_package(
+      'data_raw',
+      'king_county_council_districts.shp',
+      package = "ServicePlanningFunctions"
     )) |>
       dplyr::rename(name = area)
   } else {

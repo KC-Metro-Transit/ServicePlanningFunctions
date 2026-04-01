@@ -25,15 +25,16 @@ get_stop_ridership_by_area <- function(
   activity_type = 'ons',
   data_source
 ) {
-  routes <- get_routes_by_area(
+  stops <- get_stops_by_area(
     area = area,
     gtfs_date = gtfs_date,
     tbird_connection = tbird_connection,
-    return_type = "table"
+    return_type = "table",
+    data_source = data_source
   ) |>
     sf::st_as_sf()
 
-  route_ids <- unique(stops$stop_id)
+  stop_ids <- unique(stops$stop_id)
 
   rides <- get_stop_ridership(
     service_change_num = service_change_num,
@@ -94,7 +95,7 @@ get_stop_ridership_by_area <- function(
     map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
 
     time_period_data <- factor(
-      unique(data$period),
+      unique(plot_data$period),
       levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
       labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
       ordered = TRUE
@@ -111,10 +112,25 @@ get_stop_ridership_by_area <- function(
   if (return_type == "table") {
     geo_rides
   } else if (return_type == "interactive_map") {
-    geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
-      janitor::clean_names() |>
-      dplyr::filter(name %in% area) |>
-      sf::st_transform(crs = 4326)
+    if (data_source == "LOCUS") {
+      geography <- sf::read_sf(fs::path_package(
+        'data_raw',
+        'SASR_LocusZones.shp',
+        package = "ServicePlanningFunctions"
+      )) |>
+        janitor::clean_names() |>
+        dplyr::filter(name %in% area) |>
+        sf::st_transform(crs = 4326)
+    } else if (data_source == "King County Council Districts") {
+      geography <- sf::read_sf(fs::path_package(
+        'data_raw',
+        'king_county_council_districts.shp',
+        package = "ServicePlanningFunctions"
+      )) |>
+        dplyr::rename(name = area) |>
+        dplyr::filter(name %in% area) |>
+        sf::st_transform(4326)
+    }
 
     pal <- leaflet::colorBin(
       palette = c(
