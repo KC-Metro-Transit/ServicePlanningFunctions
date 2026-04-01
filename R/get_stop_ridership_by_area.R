@@ -10,7 +10,7 @@
 #'  Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#'
+#' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
 #' @returns Interactive map object or dataframe of stop ridership summed by selected periods.
 #'
 #' @export
@@ -22,7 +22,8 @@ get_stop_ridership_by_area <- function(
   tbird_connection,
   return_type,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  activity_type = 'ons'
+  activity_type = 'ons',
+  data_source
 ) {
   routes <- get_routes_by_area(
     area = area,

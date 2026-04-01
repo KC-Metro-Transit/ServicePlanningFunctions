@@ -12,7 +12,7 @@
 #' @param sched_day_type_coded_num Numeric. 0 = Weekday, 1 = Saturday, 2 = Sunday. Can accept multiples.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#'
+#' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
 #'
 #' @returns Interactive map object or dataframe of route ridership summed by selected periods.
 #'
@@ -27,7 +27,8 @@ get_route_ridership_by_area <- function(
   return_type,
   sched_day_type_coded_num,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  activity_type = 'ons'
+  activity_type = 'ons',
+  data_source
 ) {
   routes <- get_routes_by_area(
     area = area,
