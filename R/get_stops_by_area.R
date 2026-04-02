@@ -103,8 +103,9 @@ get_stops_by_area <- function(
       'extdata',
       'SASR_LocusZones.shp',
       package = "ServicePlanningFunctions"
-    ))
-    dplyr::filter(NAME %in% area) |>
+    )) |>
+      janitor::clean_names() |>
+      dplyr::filter(name %in% .env$area) |>
       sf::st_transform(2926)
   } else if (data_source == "King County Council Districts") {
     geography <- sf::read_sf(fs::path_package(
@@ -112,7 +113,7 @@ get_stops_by_area <- function(
       'king_county_council_districts.shp'
     )) |>
       dplyr::rename(name = area) |>
-      dplyr::filter(name %in% area) |>
+      dplyr::filter(name %in% .env$area) |>
       sf::st_transform(2926)
   } else {
     cli::cli_abort(
