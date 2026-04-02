@@ -99,12 +99,17 @@ get_stops_by_area <- function(
   #filter to polygon(s) identified
 
   if (data_source == "LOCUS") {
-    geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
+    geography <- sf::read_sf(here::here(
+      'inst',
+      'extdata',
+      'SASR_LocusZones.shp'
+    )) |>
       dplyr::filter(NAME %in% area) |>
       sf::st_transform(2926)
   } else if (data_source == "King County Council Districts") {
     geography <- sf::read_sf(here::here(
-      'data_raw',
+      'inst',
+      'extdata',
       'king_county_council_districts.shp'
     )) |>
       dplyr::rename(name = area) |>

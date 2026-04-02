@@ -121,10 +121,27 @@ get_route_ridership_by_area <- function(
   if (return_type == "table") {
     plot_data
   } else if (return_type == "interactive_map") {
-    geography <- sf::read_sf(here::here('data_raw', 'SASR_LocusZones.shp')) |>
-      janitor::clean_names() |>
-      dplyr::filter(name %in% area) |>
-      sf::st_transform(crs = 4326)
+    if (data_source == "LOCUS") {
+      geography <- sf::read_sf(fs::path_package(
+        'inst',
+        'extdata',
+        'SASR_LocusZones.shp',
+        package = "ServicePlanningFunctions"
+      )) |>
+        janitor::clean_names() |>
+        dplyr::filter(name %in% area) |>
+        sf::st_transform(crs = 4326)
+    } else if (data_source == "King County Council Districts") {
+      geography <- sf::read_sf(fs::path_package(
+        'inst',
+        'extdata',
+        'king_county_council_districts.shp',
+        package = "ServicePlanningFunctions"
+      )) |>
+        dplyr::rename(name = area) |>
+        dplyr::filter(name %in% area) |>
+        sf::st_transform(4326)
+    }
 
     pal <- leaflet::colorBin(
       palette = c(
