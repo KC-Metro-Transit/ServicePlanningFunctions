@@ -126,7 +126,6 @@ get_routes_by_area <- function(
 
   if (data_source == "LOCUS") {
     geography <- sf::read_sf(here::here(
-      'inst',
       'extdata',
       'SASR_LocusZones.shp'
     )) |>
@@ -134,7 +133,6 @@ get_routes_by_area <- function(
       sf::st_transform(2926)
   } else if (data_source == "King County Council Districts") {
     geography <- sf::read_sf(here::here(
-      'inst',
       'extdata',
       'king_county_council_districts.shp'
     )) |>

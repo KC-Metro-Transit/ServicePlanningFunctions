@@ -114,7 +114,6 @@ get_stop_ridership_by_area <- function(
   } else if (return_type == "interactive_map") {
     if (data_source == "LOCUS") {
       geography <- sf::read_sf(fs::path_package(
-        'inst',
         'extdata',
         'SASR_LocusZones.shp',
         package = "ServicePlanningFunctions"
@@ -124,7 +123,6 @@ get_stop_ridership_by_area <- function(
         sf::st_transform(crs = 4326)
     } else if (data_source == "King County Council Districts") {
       geography <- sf::read_sf(fs::path_package(
-        'inst',
         'extdata',
         'king_county_council_districts.shp',
         package = "ServicePlanningFunctions"
