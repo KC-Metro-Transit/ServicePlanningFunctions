@@ -31,7 +31,7 @@ plot_stop_crosstab <- function(
     dplyr::group_by_at(vars(service_change_num, service, x_axis)) %>%
     dplyr::select(service_change_num, service, 'axis' = x_axis, ons, offs) %>%
     dplyr::summarise(
-      dplyr::across(ons:offs, sum, na.rm = TRUE),
+      dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
       .groups = 'drop'
     ) %>%
     dplyr::mutate(rider = ons + offs) %>%
