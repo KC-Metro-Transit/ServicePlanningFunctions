@@ -23,7 +23,7 @@ plot_trip_crosstab <- function(
 ) {
   data <- dataframe %>%
     dplyr::filter(
-      as.character(day) %in% day,
+      as.character(day) %in% .env$day,
       day_part_cd %in% time_period,
       service_change_num %in% .env$service_change_num,
       route %in% .env$route
