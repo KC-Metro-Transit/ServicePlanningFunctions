@@ -6,10 +6,12 @@
 Returns either a table of available district names or a map showing the district boundaries.
 Based on LOCUS districts. Designed to be used with get_stops_by_area() and get_routes_by_area().}
 \usage{
-show_areas(return_type = "interactive_map")
+show_areas(return_type = "interactive_map", data_source = "LOCUS")
 }
 \arguments{
 \item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
+
+\item{data_source}{Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'}
 }
 \value{
 A list of area names or an interactive map of area boundaries.

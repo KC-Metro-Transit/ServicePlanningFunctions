@@ -4,16 +4,18 @@
 \alias{get_routes_by_area}
 \title{Get Routes by Area}
 \usage{
-get_routes_by_area(area, gtfs_date, tbird_connection, return_type)
+get_routes_by_area(area, gtfs_date, tbird_connection, return_type, data_source)
 }
 \arguments{
-\item{area}{Character. The name of the LOCUS district of interest. Can accept multiples.}
+\item{area}{Character. The name of the LOCUS or KC district of interest. Can accept multiples.}
 
 \item{gtfs_date}{'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.}
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 
 \item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
+
+\item{data_source}{Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'}
 }
 \value{
 Table or interactive map object of routes with stops in the selected area.

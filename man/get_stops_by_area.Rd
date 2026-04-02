@@ -4,7 +4,7 @@
 \alias{get_stops_by_area}
 \title{Get Stops by Area}
 \usage{
-get_stops_by_area(area, gtfs_date, tbird_connection, return_type)
+get_stops_by_area(area, gtfs_date, tbird_connection, return_type, data_source)
 }
 \arguments{
 \item{area}{Character. The name of the LOCUS district of interest. Can accept multiples.}
@@ -14,6 +14,8 @@ get_stops_by_area(area, gtfs_date, tbird_connection, return_type)
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 
 \item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
+
+\item{data_source}{Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'}
 }
 \value{
 Interactive map object or table of stops in selected area.

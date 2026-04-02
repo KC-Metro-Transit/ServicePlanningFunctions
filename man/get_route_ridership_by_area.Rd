@@ -12,7 +12,8 @@ get_route_ridership_by_area(
   return_type,
   sched_day_type_coded_num,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  activity_type = "ons"
+  activity_type = "ons",
+  data_source
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ Can accept multiple values as a vector if you are returning a table. For maps, s
 \item{time_period}{Character. AM, PM, MID, XEV. XNT.}
 
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
+
+\item{data_source}{Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'}
 }
 \value{
 Interactive map object or dataframe of route ridership summed by selected periods.

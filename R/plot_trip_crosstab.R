@@ -38,11 +38,10 @@ plot_trip_crosstab <- function(
       ons:avg_load
     ) %>%
     dplyr::summarise(
-      dplyr::across(ons:offs, sum, na.rm = TRUE),
-      dplyr::across(avg_load, mean, na.rm = TRUE),
+      dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
+      dplyr::across(avg_load, ~ mean(.x, na.rm = TRUE)),
       .groups = 'drop'
     ) %>%
-    dplyr::mutate(rider = ons + offs) %>%
     tidyr::pivot_longer(
       cols = ons:rider,
       names_to = 'variable',
@@ -56,7 +55,6 @@ plot_trip_crosstab <- function(
         variable,
         'ons' ~ 'Average Daily Boardings',
         'offs' ~ 'Average Daily Alightings',
-        'rider' ~ 'Average Daily Ridership',
         'avg_load' ~ 'Average Max Load',
         .default = variable
       )
