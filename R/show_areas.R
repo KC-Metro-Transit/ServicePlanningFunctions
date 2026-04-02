@@ -11,14 +11,12 @@
 show_areas <- function(return_type = "interactive_map", data_source = "LOCUS") {
   if (data_source == "LOCUS") {
     geography <- sf::read_sf(fs::path_package(
-      'inst',
       'extdata',
       'SASR_LocusZones.shp',
       package = "ServicePlanningFunctions"
     ))
   } else if (data_source == "King County Council Districts") {
     geography <- sf::read_sf(fs::path_package(
-      'inst',
       'extdata',
       'king_county_council_districts.shp',
       package = "ServicePlanningFunctions"
