@@ -43,7 +43,7 @@ plot_trip_crosstab <- function(
       .groups = 'drop'
     ) %>%
     tidyr::pivot_longer(
-      cols = ons:rider,
+      cols = ons:avg_load,
       names_to = 'variable',
       values_to = 'value'
     ) %>%
