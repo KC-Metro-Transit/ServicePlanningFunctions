@@ -34,7 +34,8 @@ get_route_ridership_by_area <- function(
     area = area,
     gtfs_date = gtfs_date,
     tbird_connection = tbird_connection,
-    data_source = data_source
+    data_source = data_source,
+    return_type = "table"
   )
 
   route_ids <- unique(routes$service_rte_num)
