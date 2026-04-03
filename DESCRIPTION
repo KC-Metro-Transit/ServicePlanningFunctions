@@ -36,7 +36,9 @@ Imports:
     remotes, 
     devtools, 
     ggplot2, 
-    rlang
+    rlang, 
+    mapview, 
+    leaflet
 URL: https://github.com/melissa-gaughan/ServicePlanningFunctions
 BugReports: https://github.com/melissa-gaughan/ServicePlanningFunctions/issues
 Suggests: 

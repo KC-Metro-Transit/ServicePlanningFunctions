@@ -23,7 +23,7 @@ plot_trip_crosstab <- function(
 ) {
   data <- dataframe %>%
     dplyr::filter(
-      day %in% day,
+      as.character(day) %in% .env$day,
       day_part_cd %in% time_period,
       service_change_num %in% .env$service_change_num,
       route %in% .env$route
@@ -38,13 +38,12 @@ plot_trip_crosstab <- function(
       ons:avg_load
     ) %>%
     dplyr::summarise(
-      across(ons:offs, sum, na.rm = TRUE),
-      across(avg_load, mean, na.rm = TRUE),
+      dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
+      dplyr::across(avg_load, ~ mean(.x, na.rm = TRUE)),
       .groups = 'drop'
     ) %>%
-    dplyr::mutate(rider = ons + offs) %>%
     tidyr::pivot_longer(
-      cols = ons:rider,
+      cols = ons:avg_load,
       names_to = 'variable',
       values_to = 'value'
     ) %>%
@@ -52,11 +51,10 @@ plot_trip_crosstab <- function(
       variable == activity_type,
     ) %>%
     dplyr::mutate(
-      variable = case_match(
+      variable = dplyr::case_match(
         variable,
         'ons' ~ 'Average Daily Boardings',
         'offs' ~ 'Average Daily Alightings',
-        'rider' ~ 'Average Daily Ridership',
         'avg_load' ~ 'Average Max Load',
         .default = variable
       )
@@ -108,7 +106,7 @@ plot_trip_crosstab <- function(
   if (x_axis == 'period') {
     plt <- ggplot2::ggplot(
       plot_data,
-      aes(
+      ggplot2::aes(
         x = axis,
         y = value,
         fill = stats::reorder(service, service_change_num)
@@ -121,7 +119,7 @@ plot_trip_crosstab <- function(
 
     plt <- ggplot2::ggplot(
       plot_data,
-      aes(
+      ggplot2::aes(
         x = stats::reorder(hour_label, axis),
         y = value,
         fill = stats::reorder(service, service_change_num)

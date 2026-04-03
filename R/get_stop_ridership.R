@@ -160,13 +160,17 @@ AND stop_id IN ({vals2*})
   stop_data |>
     janitor::clean_names() %>%
     dplyr::mutate(
-      time_period_at_stop = dplyr::case_when(
-        arrive >= 300 & arrive < 540 ~ 'AM Peak',
-        arrive >= 540 & arrive < 900 ~ 'Midday',
-        arrive >= 900 & arrive < 1140 ~ 'PM Peak',
-        arrive >= 1140 & arrive < 1320 ~ 'Evening',
-        TRUE ~ 'Night'
+      time_period_at_stop = factor(
+        dplyr::case_when(
+          arrive >= 300 & arrive < 540 ~ 'AM Peak',
+          arrive >= 540 & arrive < 900 ~ 'Midday',
+          arrive >= 900 & arrive < 1140 ~ 'PM Peak',
+          arrive >= 1140 & arrive < 1320 ~ 'Evening',
+          TRUE ~ 'Night'
+        ),
+        levels = c("AM Peak", "Midday", "PM Peak", 'Evening', 'Night')
       ),
+
       hour = as.character(arrive / 60),
       day = 'Weekday'
     ) %>%

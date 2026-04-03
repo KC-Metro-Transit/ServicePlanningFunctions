@@ -1,3 +1,4 @@
+#' ggplot engine for route level ridership plots
 #' Generate plot of ons, offs, and load by Route and Service Change from get_trip_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_trip_ridership().

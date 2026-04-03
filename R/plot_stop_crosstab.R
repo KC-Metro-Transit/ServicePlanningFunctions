@@ -1,12 +1,12 @@
+#' ggplot engine for stop level ridership plots
 #' Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_trip_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
-#' @param day Character. Day of the week. Weekday, Saturday, Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
-#' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). day, period, hour, route, route_name.
-#' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
+#' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). period, hour, route, route_name.
+#' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, rider - Total Stop Activity
 #'
 #' @returns A ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
@@ -15,15 +15,13 @@ plot_stop_crosstab <- function(
   dataframe,
   service_change_num,
   route,
-  day = c("Weekday", "Saturday", "Sunday"),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis,
   activity_type = 'ons'
 ) {
   data <- dataframe %>%
     dplyr::filter(
-      day %in% day,
-      day_part_cd %in% time_period,
+      day_part_cd %in% .env$time_period,
       service_change_num %in% .env$service_change_num,
       route %in% .env$route
     ) %>%
@@ -33,7 +31,7 @@ plot_stop_crosstab <- function(
     dplyr::group_by_at(vars(service_change_num, service, x_axis)) %>%
     dplyr::select(service_change_num, service, 'axis' = x_axis, ons, offs) %>%
     dplyr::summarise(
-      dplyr::across(ons:offs, sum, na.rm = TRUE),
+      dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
       .groups = 'drop'
     ) %>%
     dplyr::mutate(rider = ons + offs) %>%
@@ -49,7 +47,7 @@ plot_stop_crosstab <- function(
       variable = dplyr::case_when(
         variable == 'ons' ~ 'Average Daily Stop Boardings',
         variable == 'offs' ~ 'Average Daily Stop Alightings',
-        variable == 'rider' ~ 'Average Daily Stop Ridership',
+        variable == 'rider' ~ 'Average Daily Stop Activity',
         TRUE ~ variable
       )
     )
