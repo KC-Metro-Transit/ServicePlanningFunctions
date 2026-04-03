@@ -195,15 +195,8 @@ get_routes_by_area <- function(
       direction,
       geometry
     ) |>
-    dplyr::distinct(
-      service_rte_num,
-      route_short_name,
-      route_long_name,
-      shape_id,
-      direction,
-      geometry,
-      .keep_all = TRUE
-    )
+    dplyr::group_by(shape_id) |>
+    dplyr::slice_head(n = 1)
 
   if (return_type == "table") {
     routes_in_area

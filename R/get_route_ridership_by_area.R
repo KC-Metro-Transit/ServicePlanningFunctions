@@ -42,13 +42,14 @@ get_route_ridership_by_area <- function(
 
   rides <- get_trip_ridership(
     service_change_num = service_change_num,
-    sched_day_type_coded_num = sched_day_type_coded_num,
     route = route_ids,
-    tbird_connection = tbird_connection
+    tbird_connection = tbird_connection,
+    sched_day_type_coded_num = sched_day_type_coded_num
   ) %>%
     dplyr::filter(
       day_part_cd %in% time_period,
-      service_change_num %in% service_change_num
+      service_change_num %in% service_change_num,
+      sched_day_type_coded_num %in% sched_day_type_coded_num
     ) |>
     dplyr::mutate(service_rte_num = as.character(route))
 

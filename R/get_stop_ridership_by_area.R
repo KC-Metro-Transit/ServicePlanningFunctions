@@ -95,7 +95,7 @@ get_stop_ridership_by_area <- function(
     map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
 
     time_period_data <- factor(
-      unique(plot_data$period),
+      unique(rides$period),
       levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
       labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
       ordered = TRUE
