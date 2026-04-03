@@ -90,7 +90,7 @@ get_stop_ridership_by_area <- function(
     )
 
   if (length(service_change_num) != 1) {
-    cli::cli_abort(message = "Chose only 1 service change for each map.")
+    cli::cli_abort(message = "Choose only 1 service change for each map.")
   } else {
     map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
 

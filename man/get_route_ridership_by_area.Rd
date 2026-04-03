@@ -28,7 +28,7 @@ Can accept multiple values as a vector if you are returning a table. For maps, s
 
 \item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
 
-\item{sched_day_type_coded_num}{Numeric. 0 = Weekday, 1 = Saturday, 2 = Sunday. Can accept multiples.}
+\item{sched_day_type_coded_num}{Numeric. 0 = Weekday, 1 = Saturday, 2 = Sunday.}
 
 \item{time_period}{Character. AM, PM, MID, XEV. XNT.}
 
