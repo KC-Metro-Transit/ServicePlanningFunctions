@@ -1,7 +1,6 @@
-#' Get Route Productivity
 #'
-#' get_route_productivity() generates a dataframe of
-#' productivity metrics for both riders per platform hour and
+#' Generate a dataframe of
+#' productivity thresholds for both riders per platform hour and
 #' passenger miles per platform mile. This function allows the user
 #' to either return results for the whole system for a service change
 #' or return a subset of results. The subsets are evaluated against all
@@ -14,22 +13,17 @@
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param period_type Character. Level of time aggregation. Options are "day_part_cd" or "service_guidelines".
 #' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday. Can accept multiples.
-#' @param filter_routes T/F. Do you want to return results for the entire system or for a selection of routes.
-#' @param route Numeric. Required only if filter_routes == TRUE. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers.
-#' Can accept multiple values as a vector.
 #'
-#' @returns Dataframe of productivity metrics for specified routes, periods and service changes. Includes both riders per platform hour and
+#' @returns Dataframe of productivity thresholds for specified days and service changes. Includes both riders per platform hour and
 #' passenger miles per platform mile.
 #'
 #' @export
 
-get_route_productivity <- function(
+get_productivity_thresholds <- function(
   service_change = 251,
   tbird_connection,
   period_type = "service_guidelines",
-  sched_day_type_coded_num = c(0, 1, 2),
-  filter_routes = FALSE,
-  route = NULL
+  sched_day_type_coded_num = c(0, 1, 2)
 ) {
   current_service_change_df <- DBI::dbGetQuery(
     tbird_connection,
@@ -259,7 +253,6 @@ get_route_productivity <- function(
           DAY_PART_CD == "XNT" & SCHED_DAY_TYPE_CODED_NUM != 0 ~ "Night"
         )
       ) %>%
-
       janitor::clean_names() %>%
       dplyr::arrange(
         service_change_num,
@@ -437,19 +430,6 @@ get_route_productivity <- function(
         )
       )
 
-    ## put it all together
-    productivity_table <- dplyr::bind_rows(
-      route_productivity_day_part,
-      route_productivity_day
-    ) %>%
-      dplyr::mutate(
-        day = dplyr::case_when(
-          sched_day_type_coded_num == 0 ~ "Weekday",
-          sched_day_type_coded_num == 1 ~ "Saturday",
-          sched_day_type_coded_num == 2 ~ "Sunday"
-        )
-      )
-
     lookup_thresholds <- day_part_thresholds %>%
       dplyr::bind_rows(day_thresholds) %>%
       dplyr::mutate(
@@ -457,44 +437,12 @@ get_route_productivity <- function(
           is.na(day_part_cd) ~ 'DAY',
           TRUE ~ day_part_cd
         )
-      )
-
-    productivity <- productivity_table %>%
-      dplyr::left_join(
-        lookup_thresholds,
-        by = dplyr::join_by(
-          service_change_num,
-          svc_family,
-          day_part_cd,
-          sched_day_type_coded_num
-        )
-      ) %>%
-      dplyr::mutate(
-        rides_quantile = dplyr::case_when(
-          rides_per_platform_hour < bottom_25_threshold_rides ~ 1,
-          rides_per_platform_hour >= bottom_25_threshold_rides &
-            rides_per_platform_hour < median_threshold_rides ~ 2,
-          rides_per_platform_hour >= median_threshold_rides &
-            rides_per_platform_hour < top_25_threshold_rides ~ 3,
-          rides_per_platform_hour >= top_25_threshold_rides ~ 4,
-          TRUE ~ 0
-        ),
-
-        miles_quantile = dplyr::case_when(
-          psngr_miles_per_platform_mile < bottom_25_threshold_miles ~ 1,
-          psngr_miles_per_platform_mile >= bottom_25_threshold_miles &
-            psngr_miles_per_platform_mile < median_threshold_miles ~ 2,
-          psngr_miles_per_platform_mile >= median_threshold_miles &
-            psngr_miles_per_platform_mile < top_25_threshold_miles ~ 3,
-          psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 4,
-          TRUE ~ 0
-        )
       ) |>
-      dplyr::select(
-        -c(
-          dplyr::starts_with("bottom_25") |
-            dplyr::starts_with("top_25") |
-            dplyr::starts_with("median")
+      dplyr::mutate(
+        day = dplyr::case_when(
+          sched_day_type_coded_num == 0 ~ "Weekday",
+          sched_day_type_coded_num == 1 ~ "Saturday",
+          sched_day_type_coded_num == 2 ~ "Sunday"
         )
       ) |>
       # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
@@ -522,25 +470,13 @@ get_route_productivity <- function(
           as.numeric(stringr::str_c(year, season_num))
         )
       ) %>%
-      ServicePlanningFunctions::clean_service_rte_name(as.character(
-        service_rte_num
-      )) %>%
-      dplyr::rename(route_name = clean_route) %>%
       dplyr::select(-c(yr, season, year, season_num))
 
-    if (filter_routes == FALSE) {
-      cli::cli_inform(message = "Returning all routes.")
-      productivity
-    } else {
-      cli::cli_inform(message = "Filtering by provided route list: {route}.")
-      out <- productivity |>
-        dplyr::filter(service_rte_num %in% route)
-    }
+    lookup_thresholds
   } else if (period_type == "service_guidelines") {
     cli::cli_inform(
       message = "Grouping productivity results by Peak, Off-Peak, and Night definitions."
     )
-
     if (
       (period_type == "service_guidelines" &
         current_service_change %in% service_change &
@@ -564,6 +500,9 @@ get_route_productivity <- function(
         message = "Returning data for current service change which may differ from final System Evaluation results."
       )
     } else {
+      cli::cli_warn(
+        message = "Returning data for past service changes only. Check period_type and service_change parameters if not expected result."
+      )
       route_productivity_df <- trip_productivity
     }
 
@@ -600,6 +539,7 @@ get_route_productivity <- function(
         service_change_num,
         sched_day_type_coded_num,
         svc_family,
+        day,
         productivity_period
       ) %>%
       dplyr::summarise(
@@ -633,45 +573,6 @@ get_route_productivity <- function(
           probs = c(.75),
           na.rm = T
         )
-      )
-
-    productivity_period <- route_productivity %>%
-      dplyr::left_join(
-        producitivity_period_thresholds,
-        by = dplyr::join_by(
-          service_change_num,
-          svc_family,
-          productivity_period,
-          sched_day_type_coded_num
-        )
-      ) %>%
-      dplyr::mutate(
-        rides_quantile = dplyr::case_when(
-          rides_per_platform_hour < bottom_25_threshold_rides ~ 1,
-          rides_per_platform_hour >= bottom_25_threshold_rides &
-            rides_per_platform_hour < median_threshold_rides ~ 2,
-          rides_per_platform_hour >= median_threshold_rides &
-            rides_per_platform_hour < top_25_threshold_rides ~ 3,
-          rides_per_platform_hour >= top_25_threshold_rides ~ 4,
-          TRUE ~ 0
-        ),
-
-        miles_quantile = dplyr::case_when(
-          psngr_miles_per_platform_mile < bottom_25_threshold_miles ~ 1,
-          psngr_miles_per_platform_mile >= bottom_25_threshold_miles &
-            psngr_miles_per_platform_mile < median_threshold_miles ~ 2,
-          psngr_miles_per_platform_mile >= median_threshold_miles &
-            psngr_miles_per_platform_mile < top_25_threshold_miles ~ 3,
-          psngr_miles_per_platform_mile >= top_25_threshold_miles ~ 4,
-          TRUE ~ 0
-        )
-      ) |>
-      dplyr::select(
-        -c(
-          dplyr::starts_with("bottom_25") |
-            dplyr::starts_with("top_25") |
-            dplyr::starts_with("median")
-        )
       ) |>
       # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
       dplyr::mutate(
@@ -698,20 +599,9 @@ get_route_productivity <- function(
           as.numeric(stringr::str_c(year, season_num))
         )
       ) %>%
-      ServicePlanningFunctions::clean_service_rte_name(as.character(
-        service_rte_num
-      )) %>%
-      dplyr::rename(route_name = clean_route) %>%
       dplyr::select(-c(yr, season, year, season_num))
 
-    if (filter_routes == FALSE) {
-      cli::cli_inform(message = "Returning all routes.")
-      productivity_period
-    } else {
-      cli::cli_inform(message = "Filtering by provided route list: {route}")
-      out <- productivity_period |>
-        dplyr::filter(service_rte_num %in% route)
-    }
+    producitivity_period_thresholds
   } else {
     cli::cli_abort(
       message = "Missing period_type parameter. Options are 'day_part_cd' or 'service_guidelines'."
