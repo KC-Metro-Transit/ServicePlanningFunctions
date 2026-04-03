@@ -199,6 +199,7 @@ get_routes_by_area <- function(
   if (return_type == "table") {
     routes_in_area
   } else if (return_type == "interactive_map") {
+    mapview::mapviewOptions(basemaps = "CartoDB.Positron")
     mapview::mapview(routes_in_area, zcol = "service_rte_num")
   } else {
     cli::cli_abort(

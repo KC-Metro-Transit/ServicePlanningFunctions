@@ -159,6 +159,7 @@ get_stops_by_area <- function(
   if (return_type == "table") {
     map_data
   } else if (return_type == "interactive_map") {
+    mapview::mapviewOptions(basemaps = "CartoDB.Positron")
     mapview::mapview(map_data, zcol = "service_rte_num")
   } else {
     cli::cli_abort(
