@@ -68,7 +68,7 @@ get_stop_ridership_by_area <- function(
       offs
     ) %>%
     dplyr::summarise(
-      dplyr::across(ons:offs, sum, na.rm = TRUE),
+      dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
       .groups = 'drop'
     ) %>%
     dplyr::mutate(rider = ons + offs) %>%
