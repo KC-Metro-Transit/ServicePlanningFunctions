@@ -93,37 +93,37 @@ get_route_ridership_by_area <- function(
       )
     )
 
-  if (length(service_change_num) != 1) {
-    cli::cli_abort(message = "Choose only 1 service change for each map.")
-  } else {
-    map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
-
-    time_period_data <- factor(
-      unique(rides$period),
-      levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
-      labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
-      ordered = TRUE
-    )
-
-    time_period_label <- stringr::str_flatten_comma(sort(time_period_data))
-
-    day_data <- factor(
-      unique(rides$day),
-      levels = c("Weekday", "Saturday", "Sunday"),
-      labels = c("Weekday", "Saturday", "Sunday"),
-      ordered = TRUE
-    )
-    day_label <- stringr::str_flatten_comma(sort(day_data))
-    geo_rides <- routes |>
-      dplyr::left_join(
-        plot_data,
-        by = c("service_rte_num" = "service_rte_num")
-      ) |>
-      sf::st_transform(4326)
-  }
   if (return_type == "table") {
     plot_data
   } else if (return_type == "interactive_map") {
+    if (length(service_change_num) != 1) {
+      cli::cli_abort(message = "Choose only 1 service change for each map.")
+    } else {
+      map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
+
+      time_period_data <- factor(
+        unique(rides$period),
+        levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
+        labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
+        ordered = TRUE
+      )
+
+      time_period_label <- stringr::str_flatten_comma(sort(time_period_data))
+
+      day_data <- factor(
+        unique(rides$day),
+        levels = c("Weekday", "Saturday", "Sunday"),
+        labels = c("Weekday", "Saturday", "Sunday"),
+        ordered = TRUE
+      )
+      day_label <- stringr::str_flatten_comma(sort(day_data))
+      geo_rides <- routes |>
+        dplyr::left_join(
+          plot_data,
+          by = c("service_rte_num" = "service_rte_num")
+        ) |>
+        sf::st_transform(4326)
+    }
     if (data_source == "LOCUS") {
       geography <- sf::read_sf(fs::path_package(
         'extdata',
