@@ -40,14 +40,11 @@ plot_route_ridership_by_area <- function(
     route = route_ids,
     tbird_connection = tbird_connection,
     sched_day_type_coded_num = sched_day_type_coded_num
-  )
-  # %>%
-  #   dplyr::filter(
-  #     day_part_cd %in% time_period,
-  #     service_change_num %in% .env$service_change_num,
-  #     sched_day_type_coded_num %in% .env$sched_day_type_coded_num
-  #   ) |>
-  #   dplyr::mutate(service_rte_num = as.character(route))
+  ) %>%
+    dplyr::filter(
+      day_part_cd %in% time_period,
+    ) |>
+    dplyr::mutate(service_rte_num = as.character(route))
 
   day_names <- sched_day_type_coded_num
   day_names <- stringr::str_replace(day_names, "0", "Weekday")
@@ -59,7 +56,7 @@ plot_route_ridership_by_area <- function(
     service_change_num = service_change_num,
     route = route_ids,
     day = day_names,
-    time_period = c("AM", "PM", "MID", "XEV", "XNT"),
+    time_period = time_period,
     x_axis = x_axis,
     activity_type = activity_type
   )
