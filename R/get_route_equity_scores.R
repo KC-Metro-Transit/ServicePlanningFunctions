@@ -79,6 +79,10 @@ RTE_OPPORTUNITY_INDEX_SCORE
         yr %in% 1:10 ~ stringr::str_c("200", yr), # 2001-2009
         yr >= 10 ~ stringr::str_c("20", yr), # > 2010
         TRUE ~ NA
+      ),
+      service = stats::reorder(
+        paste(season, year),
+        as.numeric(stringr::str_c(year, season_num))
       )
     ) %>%
     ServicePlanningFunctions::clean_service_rte_name(as.character(
