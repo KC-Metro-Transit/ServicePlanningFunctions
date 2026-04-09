@@ -64,7 +64,7 @@ style_kcm <- function(textsize = NULL) {
     legend.background = ggplot2::element_blank(),
     legend.title = ggplot2::element_blank(),
     legend.justification = 'left',
-    legend.margin = margin(t = 0, b = 0, l = 0, r = 0),
+    legend.margin = ggplot2::margin(t = 0, b = 0, l = 0, r = 0),
     legend.key = ggplot2::element_blank(),
     legend.text = ggplot2::element_text(family = font, size = legend_size),
 

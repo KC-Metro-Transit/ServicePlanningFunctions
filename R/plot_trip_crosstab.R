@@ -96,7 +96,7 @@ plot_trip_crosstab <- function(
 
   plt <- ggplot2::ggplot(
     plot_data,
-    aes(
+    ggplot2::aes(
       x = stats::reorder(axis, dplyr::desc(value)),
       y = value,
       fill = stats::reorder(service, service_change_num)
@@ -140,7 +140,7 @@ plot_trip_crosstab <- function(
     ggplot2::labs(subtitle = paste(day_title, period_title, sep = ", ")) +
     ggplot2::scale_x_discrete(
       labels = scales::label_wrap(10),
-      guide = guide_axis(angle = 45)
+      guide = ggplot2::guide_axis(angle = 45)
     ) +
     ServicePlanningFunctions::style_kcm()
   plt
