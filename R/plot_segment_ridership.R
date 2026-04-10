@@ -32,7 +32,7 @@ plot_segment_ridership <- function(
       direction %in% .env$direction
     ) %>%
     dplyr::rename(period = time_period_at_stop) |>
-    dplyr::mutate(route_express_local = paste0(route, express_local_cd))
+    dplyr::mutate(route = paste0(route, express_local_cd))
 
   start_stop_id_df <- dplyr::filter(data, stop_id %in% start_stop) |>
     dplyr::distinct(
@@ -146,7 +146,7 @@ plot_segment_ridership <- function(
     width = 50
   )
 
-  route_title <- paste0(unique(data$route_express_local), collapse = ", ")
+  route_title <- paste0(unique(data$route), collapse = ", ")
 
   period_title <- ifelse(
     length(setdiff(
