@@ -172,3 +172,15 @@ con <- connect_to_tbird()
 productivity_df <- get_route_productivity(service_change = c(241, 243), tbird_connection = con, period_type = "day_part_cd", day = "Weekday", filter_routes = T, route = c(1,2,3,4,5) )
 
 ```
+
+
+## get_route_equity_scores() Example
+
+get_route_equity_scores() generates a dataframe of equity data drawn from dp.route_classification. You can specify which service changes and routes you want data for. The results will include service families as well as the route equity scores for specified routes. See the tbird data dictionary for full definitions. 
+
+```{r example_get_trip_productivity, eval=F}
+con <- connect_to_tbird()
+
+productivity_df <- get_route_equity_scores(service_change = c(241, 243), tbird_connection = con,  route = c(1,2,3,4,5) )
+
+```
