@@ -112,7 +112,44 @@ get_productivity_thresholds <- function(
         service_rte_num,
         sched_day_type_coded_num
       ) |>
-      dplyr::left_join(route_classification)
+      dplyr::left_join(route_classification) %>%
+      dplyr::group_by(
+        service_change_num,
+        service_rte_num,
+        #express_local_cd,
+        sched_day_type_coded_num,
+        svc_family,
+        productivity_period,
+        .drop = F
+      ) %>%
+      dplyr::summarise(
+        # this summarize clause is duplicated to sum across am/pm peak periods before reassigning productivity periods based on trip counts and trip start times.
+        ons = sum(ons, na.rm = T),
+        platform_miles = sum(as.numeric(platform_miles), na.rm = T),
+        avg_psngr_miles = sum(as.numeric(avg_psngr_miles), na.rm = T),
+        platform_hours = sum(as.numeric(platform_hours), na.rm = T),
+        trip_count = sum(as.numeric(trip_count), na.rm = T),
+        last_trip = max(last_trip, na.rm = T),
+        first_trip = min(first_trip, na.rm = T)
+      ) %>%
+      dplyr::mutate(
+        productivity_period = dplyr::case_when(
+          productivity_period == "Night" &
+            sched_day_type_coded_num == 0 &
+            trip_count < 5 &
+            last_trip < 1200 ~ "Peak",
+          productivity_period == "Night" &
+            sched_day_type_coded_num != 0 &
+            trip_count < 5 &
+            last_trip < 1200 ~ "Off-Peak",
+          productivity_period == "Peak" &
+            sched_day_type_coded_num == 0 &
+            trip_count < 8 &
+            last_trip < 1020 &
+            first_trip > 450 ~ "Off-Peak",
+          TRUE ~ productivity_period
+        )
+      )
   } else if (
     period_type == "service_guidelines" &
       !(current_service_change %in% service_change)
@@ -145,6 +182,7 @@ get_productivity_thresholds <- function(
       )
     ) %>%
       janitor::clean_names() %>%
+      # Assuming standard annualization factor when converting to daily averages (some routes can have different annualization factor per trip)
       dplyr::mutate(dplyr::across(
         platform_miles:ons,
         ~ dplyr::case_when(
@@ -197,6 +235,7 @@ get_productivity_thresholds <- function(
       )
     ) %>%
       janitor::clean_names() %>%
+      # Assuming standard annualization factor when converting to daily averages (some routes can have different annualization factor per trip)
       dplyr::mutate(dplyr::across(
         platform_miles:ons,
         ~ dplyr::case_when(
@@ -260,6 +299,7 @@ get_productivity_thresholds <- function(
         sched_day_type_coded_num
       ) |>
       dplyr::left_join(route_classification) %>%
+      dplyr::mutate(dplyr::across(platform_miles:ons, ~ as.numeric(.))) %>%
       dplyr::group_by(
         service_change_num,
         service_rte_num,
