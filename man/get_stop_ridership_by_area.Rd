@@ -8,6 +8,7 @@ get_stop_ridership_by_area(
   area,
   gtfs_date,
   service_change_num,
+  route = "All",
   tbird_connection,
   return_type,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
@@ -22,6 +23,8 @@ get_stop_ridership_by_area(
 
 \item{service_change_num}{Numeric. The three-digit identifier of the service change.
 Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.}
+
+\item{route}{Numeric.  The route identifiers of interest. Optional.}
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 

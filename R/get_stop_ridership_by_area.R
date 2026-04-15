@@ -8,6 +8,7 @@
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
 #' @param service_change_num Numeric. The three-digit identifier of the service change.
 #'  Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.
+#' @param route Numeric.  The route identifiers of interest. Optional.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'

@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_trip_ridership.R
 \name{get_trip_ridership}
 \alias{get_trip_ridership}
-\title{Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY}
+\title{Get Trip Ridership from T-BIRD}
 \usage{
 get_trip_ridership(
   service_change_num,
@@ -24,5 +24,5 @@ get_trip_ridership(
 Dataframe of trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 }
 \description{
-Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
+Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 }

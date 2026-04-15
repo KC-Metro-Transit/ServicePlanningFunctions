@@ -2,7 +2,7 @@
 % Please edit documentation in R/style_kcm_flip.R
 \name{style_kcm_flip}
 \alias{style_kcm_flip}
-\title{style_kcm_flip returns a Metro branded ggplot2 plot with categories on the y axis}
+\title{style_kcm_flip}
 \usage{
 style_kcm_flip(textsize = NULL)
 }
@@ -13,7 +13,7 @@ style_kcm_flip(textsize = NULL)
 a Metro branded ggplot2 plot with categories on the y axis
 }
 \description{
-style_kcm_flip returns a Metro branded ggplot2 plot with categories on the y axis
+returns a Metro branded ggplot2 plot with categories on the y axis
 }
 \examples{
 #ggplot(mtcars, aes(x = factor(cyl), y = wt, color = factor(cyl))) +

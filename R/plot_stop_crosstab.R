@@ -4,6 +4,7 @@
 #' @param dataframe Dataframe. Output from get_trip_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
+#' @param stop_id A vector of stop IDs or "All" if all stops on a route are of interest. Defaults to "All"
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). period, hour, route, route_name.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, rider - Total Stop Activity

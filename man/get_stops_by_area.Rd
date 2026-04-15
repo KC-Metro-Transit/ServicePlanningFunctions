@@ -9,7 +9,7 @@ get_stops_by_area(area, gtfs_date, tbird_connection, return_type, data_source)
 \arguments{
 \item{area}{Character. The name of the LOCUS district of interest. Can accept multiples.}
 
-\item{gtfs_date}{'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.}
+\item{gtfs_date}{'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date. Can accept multiples.}
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 

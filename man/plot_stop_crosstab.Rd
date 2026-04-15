@@ -2,13 +2,13 @@
 % Please edit documentation in R/plot_stop_crosstab.R
 \name{plot_stop_crosstab}
 \alias{plot_stop_crosstab}
-\title{ggplot engine for stop level ridership plots
-Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()}
+\title{ggplot engine for stop level ridership plots}
 \usage{
 plot_stop_crosstab(
   dataframe,
   service_change_num,
   route,
+  stop_id = "All",
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis,
   activity_type = "ons"
@@ -21,6 +21,8 @@ plot_stop_crosstab(
 
 \item{route}{Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.}
 
+\item{stop_id}{A vector of stop IDs or "All" if all stops on a route are of interest. Defaults to "All"}
+
 \item{time_period}{Character. AM, PM, MID, XEV. XNT.}
 
 \item{x_axis}{Character. Grouping variable based on columns found in output from get_stop_ridership(). period, hour, route, route_name.}
@@ -31,6 +33,5 @@ plot_stop_crosstab(
 A ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 }
 \description{
-ggplot engine for stop level ridership plots
 Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 }
