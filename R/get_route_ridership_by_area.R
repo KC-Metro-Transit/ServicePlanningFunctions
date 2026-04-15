@@ -1,6 +1,6 @@
 #' Get Route Ridership by Area
 #'
-#' This function returns either an interactive map of route  ridership for the selected area or a dataframe showing ridership data for routes that serve the selected area.
+#' @description This function returns either an interactive map of route  ridership for the selected area or a dataframe showing ridership data for routes that serve the selected area.
 
 #'
 #' @param area Character. The name of the LOCUS district of interest. Can accept multiples.

@@ -1,5 +1,5 @@
 #' ggplot engine for stop level ridership plots
-#' Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
+#' @description Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_trip_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
@@ -15,20 +15,31 @@ plot_stop_crosstab <- function(
   dataframe,
   service_change_num,
   route,
+  stop_id = "All",
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis,
   activity_type = 'ons'
 ) {
-  data <- dataframe %>%
-    dplyr::filter(
-      day_part_cd %in% .env$time_period,
-      service_change_num %in% .env$service_change_num,
-      route %in% .env$route
-    ) %>%
-    dplyr::rename(period = time_period_at_stop)
-
+  if ("All" %in% stop_id) {
+    data <- dataframe %>%
+      dplyr::filter(
+        day_part_cd %in% .env$time_period,
+        service_change_num %in% .env$service_change_num,
+        route %in% .env$route
+      ) %>%
+      dplyr::rename(period = time_period_at_stop)
+  } else {
+    data <- dataframe %>%
+      dplyr::filter(
+        day_part_cd %in% .env$time_period,
+        service_change_num %in% .env$service_change_num,
+        route %in% .env$route,
+        stop_id %in% .env$stop_id
+      ) %>%
+      dplyr::rename(period = time_period_at_stop)
+  }
   plot_data <- data %>%
-    dplyr::group_by_at(vars(service_change_num, service, x_axis)) %>%
+    dplyr::group_by_at(dplyr::vars(service_change_num, service, x_axis)) %>%
     dplyr::select(service_change_num, service, 'axis' = x_axis, ons, offs) %>%
     dplyr::summarise(
       dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
@@ -62,7 +73,7 @@ plot_stop_crosstab <- function(
     'route' ~ 'Route',
     'route_name' ~ 'Route',
     'stop' ~ 'Stop',
-    .default = str_to_title(x_axis)
+    .default = stringr::str_to_title(x_axis)
   )
 
   day_title <- ifelse(
@@ -70,6 +81,19 @@ plot_stop_crosstab <- function(
     paste0('All Week'),
     paste0(unique(data$day), collapse = ", ")
   )
+
+  stop_title <- ifelse(
+    "All" %in% stop_id,
+    paste0('all stops on route(s)'),
+    paste0(
+      sort(unique(
+        data$stop_id
+      )),
+      collapse = ", "
+    )
+  )
+
+  route_title <- paste0(unique(data$route), collapse = ", ")
 
   period_title <- ifelse(
     length(setdiff(
@@ -88,7 +112,7 @@ plot_stop_crosstab <- function(
 
   plt <- ggplot2::ggplot(
     plot_data,
-    aes(
+    ggplot2::aes(
       x = stats::reorder(axis, dplyr::desc(value)),
       y = value,
       fill = stats::reorder(service, service_change_num)
@@ -98,7 +122,7 @@ plot_stop_crosstab <- function(
   if (x_axis == 'period') {
     plt <- ggplot2::ggplot(
       plot_data,
-      aes(
+      ggplot2::aes(
         x = axis,
         y = value,
         fill = stats::reorder(service, service_change_num)
@@ -111,7 +135,7 @@ plot_stop_crosstab <- function(
 
     plt <- ggplot2::ggplot(
       plot_data,
-      aes(
+      ggplot2::aes(
         x = stats::reorder(hour_label, axis),
         y = value,
         fill = stats::reorder(service, service_change_num)
@@ -120,7 +144,7 @@ plot_stop_crosstab <- function(
   }
 
   plt <- plt +
-    ggplot2::geom_col(position = position_dodge()) +
+    ggplot2::geom_col(position = ggplot2::position_dodge()) +
     viridis::scale_fill_viridis(discrete = TRUE, name = 'Legend') +
     ggplot2::ggtitle(paste0(
       var_title,
@@ -129,7 +153,20 @@ plot_stop_crosstab <- function(
       ', ',
       'Stop Ridership'
     )) +
-    ggplot2::labs(subtitle = paste(day_title, period_title, sep = ", ")) +
+    ggplot2::labs(
+      subtitle = paste(day_title, period_title, sep = ", "),
+      caption = stringr::str_wrap(
+        paste(
+          "Plot shows data for stops on route(s)",
+          route_title,
+          "at stops",
+          stop_title,
+          width = 50,
+          sep = " "
+        ),
+        width = 100
+      )
+    ) +
     ggplot2::scale_x_discrete(
       labels = scales::label_wrap(10),
       guide = ggplot2::guide_axis(angle = 45)

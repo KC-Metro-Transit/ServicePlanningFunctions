@@ -1,5 +1,5 @@
 #' Show Areas
-#' Returns either a table of available district names or a map showing the district boundaries.
+#' @description Returns either a table of available district names or a map showing the district boundaries.
 #'  Based on LOCUS districts. Designed to be used with get_stops_by_area() and get_routes_by_area().
 #'
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".

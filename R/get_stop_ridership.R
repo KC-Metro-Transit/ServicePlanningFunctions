@@ -1,5 +1,5 @@
 #' Get Stop Ridership from T-BIRD
-#' Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL
+#' @description Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL
 #' @param service_change_num Numeric. The three-digit identifier of the service change.
 #'  Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest or "All" to return all routes. Values to be treated as characters to allow for non-numeric route identifiers.
