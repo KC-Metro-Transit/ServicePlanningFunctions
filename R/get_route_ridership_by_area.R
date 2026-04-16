@@ -13,7 +13,6 @@
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
-#' @param x_axis Character. Only required if returning a plot. Options are 'neighborhood', 'route', 'period', 'hour'.
 #' @returns Interactive map object or dataframe of route ridership summed by selected periods.
 #'
 #'
@@ -28,8 +27,7 @@ get_route_ridership_by_area <- function(
   sched_day_type_coded_num,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons',
-  data_source,
-  x_axis = NULL
+  data_source
 ) {
   routes <- get_routes_by_area(
     area = area,
@@ -96,96 +94,6 @@ get_route_ridership_by_area <- function(
 
   if (return_type == "table") {
     plot_data
-  } else if (return_type == "plot") {
-    if (is.null(x_axis)) {
-      cli::cli_abort(
-        message = " Please specify an x axis for your plot. Options are 'period', 'hour', 'route', 'neighborhood'"
-      )
-    }
-    var_title <- unique(plot_data$variable)
-
-    axis_title <- dplyr::case_match(
-      x_axis,
-      'neighborhood' ~ 'Neighborhood',
-      'period' ~ 'Period',
-      'hour' ~ 'Hour',
-      'route' ~ 'Route',
-      'route_name' ~ 'Route',
-      .default = stringr::str_to_title(x_axis)
-    )
-
-    day_title <- ifelse(
-      length(setdiff(c("Weekday", "Saturday", "Sunday"), unique(rides$day))) ==
-        0,
-      paste0('All Week'),
-      paste0(unique(rides$day), collapse = ", ")
-    )
-
-    period_title <- ifelse(
-      length(setdiff(
-        c("AM", "PM", "MID", "XEV", "XNT"),
-        unique(rides$day_part_cd)
-      )) ==
-        0,
-      paste0('All Day'),
-      paste0(
-        sort(unique(
-          rides$day_part_cd
-        )),
-        collapse = ", "
-      )
-    )
-
-    plt <- ggplot2::ggplot(
-      plot_data,
-      ggplot2::aes(
-        x = stats::reorder(axis, dplyr::desc(value)),
-        y = value,
-        fill = stats::reorder(service, service_change_num)
-      )
-    )
-
-    if (x_axis == 'period') {
-      plt <- ggplot2::ggplot(
-        plot_data,
-        ggplot2::aes(
-          x = axis,
-          y = value,
-          fill = stats::reorder(service, service_change_num)
-        )
-      )
-    }
-    if (x_axis == 'hour') {
-      plot_data <- plot_data %>%
-        dplyr::mutate(hour_label = as.character(axis))
-
-      plt <- ggplot2::ggplot(
-        plot_data,
-        ggplot2::aes(
-          x = stats::reorder(hour_label, axis),
-          y = value,
-          fill = stats::reorder(service, service_change_num)
-        )
-      )
-    }
-
-    plt <- plt +
-      ggplot2::geom_col(position = ggplot2::position_dodge()) +
-      viridis::scale_fill_viridis(discrete = TRUE, name = 'Legend') +
-      ggplot2::ggtitle(paste0(
-        var_title,
-        ' by ',
-        axis_title,
-        ', ',
-        'Trip Ridership'
-      )) +
-      ggplot2::labs(subtitle = paste(day_title, period_title, sep = ", ")) +
-      ggplot2::scale_x_discrete(
-        labels = scales::label_wrap(10),
-        guide = ggplot2::guide_axis(angle = 45)
-      ) +
-      ServicePlanningFunctions::style_kcm()
-    plt
   } else if (return_type == "interactive_map") {
     if (length(service_change_num) != 1) {
       cli::cli_abort(message = "Choose only 1 service change for each map.")
