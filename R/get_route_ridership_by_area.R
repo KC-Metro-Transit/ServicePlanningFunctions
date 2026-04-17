@@ -8,7 +8,7 @@
 #' @param service_change_num Numeric. The three-digit identifier of the service change.
 #'  Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.
 #' @param tbird_connection The connection object created by connect_to_tbird()
-#' @param return_type Character. Specify what you want to see. Options are "table", "plot", and "interactive_map".
+#' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
 #' @param sched_day_type_coded_num Numeric. 0 = Weekday, 1 = Saturday, 2 = Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
