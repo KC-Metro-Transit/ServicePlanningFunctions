@@ -1,7 +1,7 @@
 #' ggplot engine for stop level ridership plots
 #' Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
-#' @param dataframe Dataframe. Output from get_trip_ridership().
+#' @param dataframe Dataframe. Output from get_stop_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
@@ -146,7 +146,7 @@ plot_segment_ridership <- function(
     width = 50
   )
 
-  route_title <- paste0(unique(data$route), collapse = ", ")
+  route_title <- paste0(sort(unique(data$route)), collapse = ", ")
 
   period_title <- ifelse(
     length(setdiff(
