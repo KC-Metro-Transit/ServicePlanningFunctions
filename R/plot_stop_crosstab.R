@@ -94,7 +94,7 @@ plot_stop_crosstab <- function(
     )
   )
 
-  route_title <- paste0(unique(data$route), collapse = ", ")
+  route_title <- paste0(sort(unique(data$route)), collapse = ", ")
 
   period_title <- ifelse(
     length(setdiff(
