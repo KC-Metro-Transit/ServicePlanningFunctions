@@ -15,7 +15,7 @@ plot_stop_crosstab(
 )
 }
 \arguments{
-\item{dataframe}{Dataframe. Output from get_trip_ridership().}
+\item{dataframe}{Dataframe. Output from get_stop_ridership().}
 
 \item{service_change_num}{Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.}
 
