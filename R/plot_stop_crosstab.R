@@ -162,7 +162,6 @@ plot_stop_crosstab <- function(
           route_title,
           "at stops",
           stop_title,
-          width = 50,
           sep = " "
         ),
         width = 100
