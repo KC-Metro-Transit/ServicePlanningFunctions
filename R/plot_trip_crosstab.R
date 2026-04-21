@@ -62,7 +62,7 @@ plot_trip_crosstab <- function(
       )
     )
 
-  route_title <- paste0(unique(data$route), collapse = ", ")
+  route_title <- paste0(sort(unique(data$route)), collapse = ", ")
 
   var_title <- unique(plot_data$variable)
 
