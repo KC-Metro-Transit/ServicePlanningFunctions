@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_trip_crosstab.R
 \name{plot_trip_crosstab}
 \alias{plot_trip_crosstab}
-\title{Generate plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()}
+\title{Generate plot of ons, offs, and load}
 \usage{
 plot_trip_crosstab(
   dataframe,
@@ -33,5 +33,5 @@ plot_trip_crosstab(
 ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
 }
 \description{
-Generate plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
+Create plots of trip and route ridership by Select Variable and Service Change from get_trip_ridership()
 }

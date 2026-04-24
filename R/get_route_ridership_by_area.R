@@ -1,6 +1,6 @@
 #' Get Route Ridership by Area
 #'
-#' This function returns either an interactive map of route  ridership for the selected area or a dataframe showing ridership data for routes that serve the selected area.
+#' @description This function returns either an interactive map of route  ridership for the selected area or a dataframe showing ridership data for routes that serve the selected area.
 
 #'
 #' @param area Character. The name of the LOCUS district of interest. Can accept multiples.
@@ -13,7 +13,6 @@
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
-#'
 #' @returns Interactive map object or dataframe of route ridership summed by selected periods.
 #'
 #'

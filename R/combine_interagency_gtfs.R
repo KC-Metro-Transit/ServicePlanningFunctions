@@ -1,6 +1,6 @@
 #' Combine GTFS Files From Interagencies
 #'
-#' This function combines Metro's GTFS with other agency's GTFS (i.e. Community Transit, Pierce Transit, Sound Transit). This function is similar in function with @seealso \code{\link[=combine_gtfs]{combine_gtfs()}}.
+#'@description This function combines Metro's GTFS with other agency's GTFS (i.e. Community Transit, Pierce Transit, Sound Transit). This function is similar in function with @seealso \code{\link[=combine_gtfs]{combine_gtfs()}}.
 #'
 #' @param gtfs_filepath Character string in quotes. The location of the folders containing the GTFS files. This should be the parent directory, not the sub-directory.
 #' @param save_csv T/F Do you want to save csv files of the combined GTFS tables?

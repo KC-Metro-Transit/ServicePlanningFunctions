@@ -1,6 +1,6 @@
 #' Get Route Productivity
 #'
-#' get_route_productivity() generates a dataframe of
+#' @description get_route_productivity() generates a dataframe of
 #' productivity metrics for both riders per platform hour and
 #' passenger miles per platform mile. This function allows the user
 #' to either return results for the whole system for a service change

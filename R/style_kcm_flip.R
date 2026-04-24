@@ -1,4 +1,6 @@
-#' style_kcm_flip returns a Metro branded ggplot2 plot with categories on the y axis
+#' style_kcm_flip
+#'
+#' @description returns a Metro branded ggplot2 plot with categories on the y axis
 #'
 #' @param textsize Specifies the font size to use. Defaults to default size. "large" to increase font size for pdf/png/jpeg/markdown exports.
 #'

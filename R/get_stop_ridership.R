@@ -1,5 +1,5 @@
 #' Get Stop Ridership from T-BIRD
-#' Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL
+#' @description Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL
 #' @param service_change_num Numeric. The three-digit identifier of the service change.
 #'  Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest or "All" to return all routes. Values to be treated as characters to allow for non-numeric route identifiers.
@@ -36,14 +36,15 @@ get_stop_ridership <- function(
       glue::glue_sql(
         " SELECT [SERVICE_CHANGE_NUM]
       ,[SERVICE_RTE_NUM] as route
+      ,[EXPRESS_LOCAL_CD]
       ,[TRIP_ID]
       ,[INBD_OUTBD_CD] as direction
       ,[STOP_ID]
+      ,[STOP_SEQUENCE_NUM]
       ,[BEARING_CD]
       ,[HOST_STREET_NM]
       ,[CROSS_STREET_NM]
       ,[JURISDICTION_CD]
-      ,[STOP_SEQUENCE_NUM]
       ,[AVG_ARRIVAL_CLOCK_TIME]
       ,[AVG_ARRIVAL_MNTS_AFTER_MIDNT] as arrive
       ,[DAY_PART_CD]
@@ -65,14 +66,15 @@ get_stop_ridership <- function(
       glue::glue_sql(
         "SELECT [SERVICE_CHANGE_NUM]
       ,[SERVICE_RTE_NUM] as route
+       ,[EXPRESS_LOCAL_CD]
       ,[TRIP_ID]
       ,[INBD_OUTBD_CD] as direction
       ,[STOP_ID]
+      ,[STOP_SEQUENCE_NUM]
       ,[BEARING_CD]
       ,[HOST_STREET_NM]
       ,[CROSS_STREET_NM]
       ,[JURISDICTION_CD]
-      ,[STOP_SEQUENCE_NUM]
       ,[AVG_ARRIVAL_CLOCK_TIME]
       ,[AVG_ARRIVAL_MNTS_AFTER_MIDNT] as arrive
       ,[DAY_PART_CD]
@@ -96,14 +98,15 @@ AND SERVICE_RTE_NUM IN ({vals2*})
       glue::glue_sql(
         "SELECT [SERVICE_CHANGE_NUM]
       ,[SERVICE_RTE_NUM] as route
+       ,[EXPRESS_LOCAL_CD]
       ,[TRIP_ID]
       ,[INBD_OUTBD_CD] as direction
       ,[STOP_ID]
+      ,[STOP_SEQUENCE_NUM]
       ,[BEARING_CD]
       ,[HOST_STREET_NM]
       ,[CROSS_STREET_NM]
       ,[JURISDICTION_CD]
-      ,[STOP_SEQUENCE_NUM]
       ,[AVG_ARRIVAL_CLOCK_TIME]
       ,[AVG_ARRIVAL_MNTS_AFTER_MIDNT] as arrive
       ,[DAY_PART_CD]
@@ -129,14 +132,15 @@ AND stop_id IN ({vals2*})
       glue::glue_sql(
         " SELECT [SERVICE_CHANGE_NUM]
       ,[SERVICE_RTE_NUM] as route
+       ,[EXPRESS_LOCAL_CD]
       ,[TRIP_ID]
       ,[INBD_OUTBD_CD] as direction
       ,[STOP_ID]
+      ,[STOP_SEQUENCE_NUM]
       ,[BEARING_CD]
       ,[HOST_STREET_NM]
       ,[CROSS_STREET_NM]
       ,[JURISDICTION_CD]
-      ,[STOP_SEQUENCE_NUM]
       ,[AVG_ARRIVAL_CLOCK_TIME]
       ,[AVG_ARRIVAL_MNTS_AFTER_MIDNT] as arrive
       ,[DAY_PART_CD]

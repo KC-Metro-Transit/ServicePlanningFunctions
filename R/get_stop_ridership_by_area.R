@@ -1,6 +1,6 @@
 #' Get Stop Ridership by Area
 #'
-#' This function returns either an interactive map of weekday stop-level ridership for the selected area or a dataframe showing ridership data for stops in the selected area.
+#' @description This function returns either an interactive map of weekday stop-level ridership for the selected area or a dataframe showing ridership data for stops in the selected area.
 #'
 #' @param area Character. The name of the LOCUS district of interest. Can accept multiples.
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
@@ -8,6 +8,7 @@
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
 #' @param service_change_num Numeric. The three-digit identifier of the service change.
 #'  Can accept multiple values as a vector if you are returning a table. For maps, select one service change at a time.
+#' @param route Numeric.  The route identifiers of interest. Optional.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
@@ -19,6 +20,7 @@ get_stop_ridership_by_area <- function(
   area,
   gtfs_date,
   service_change_num,
+  route = "All",
   tbird_connection,
   return_type,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
@@ -39,7 +41,7 @@ get_stop_ridership_by_area <- function(
   rides <- get_stop_ridership(
     service_change_num = service_change_num,
     stop_id = stop_ids,
-    route = "All",
+    route = route,
     tbird_connection = tbird_connection
   ) %>%
     dplyr::filter(
@@ -47,6 +49,15 @@ get_stop_ridership_by_area <- function(
       service_change_num %in% .env$service_change_num
     ) %>%
     dplyr::rename(period = time_period_at_stop)
+
+  routes_at_stop <- rides |>
+    dplyr::filter(service_change_num %in% .env$service_change_num) |>
+    dplyr::distinct(stop_id, route_name, service) |>
+    dplyr::group_by(stop_id, service) |>
+    dplyr::mutate(routes_at_stop = toString(route_name)) |>
+    dplyr::ungroup() |>
+    dplyr::select(-route_name) |>
+    dplyr::distinct()
 
   plot_data <- rides %>%
     dplyr::group_by_at(dplyr::vars(
@@ -104,9 +115,13 @@ get_stop_ridership_by_area <- function(
     time_period_label <- stringr::str_flatten_comma(sort(time_period_data))
 
     geo_rides <- stops |>
-      dplyr::select(-c(route_id, service_rte_num, route_short_name)) |>
       dplyr::distinct(.keep_all = TRUE) |>
       dplyr::left_join(plot_data, by = c("stop_id" = "stop_id")) |>
+      dplyr::left_join(
+        routes_at_stop,
+        by = c("stop_id", "service")
+      ) |>
+      tidyr::drop_na(value) |>
       sf::st_transform(4326)
   }
   if (return_type == "table") {

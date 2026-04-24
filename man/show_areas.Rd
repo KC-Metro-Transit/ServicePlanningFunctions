@@ -2,9 +2,7 @@
 % Please edit documentation in R/show_areas.R
 \name{show_areas}
 \alias{show_areas}
-\title{Show Areas
-Returns either a table of available district names or a map showing the district boundaries.
-Based on LOCUS districts. Designed to be used with get_stops_by_area() and get_routes_by_area().}
+\title{Show Areas}
 \usage{
 show_areas(return_type = "interactive_map", data_source = "LOCUS")
 }
@@ -17,7 +15,6 @@ show_areas(return_type = "interactive_map", data_source = "LOCUS")
 A list of area names or an interactive map of area boundaries.
 }
 \description{
-Show Areas
 Returns either a table of available district names or a map showing the district boundaries.
 Based on LOCUS districts. Designed to be used with get_stops_by_area() and get_routes_by_area().
 }

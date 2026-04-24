@@ -2,8 +2,7 @@
 % Please edit documentation in R/get_stop_ridership.R
 \name{get_stop_ridership}
 \alias{get_stop_ridership}
-\title{Get Stop Ridership from T-BIRD
-Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL}
+\title{Get Stop Ridership from T-BIRD}
 \usage{
 get_stop_ridership(service_change_num, route, stop_id, tbird_connection)
 }
@@ -22,6 +21,5 @@ Can accept multiple values as a vector.}
 A dataframe of stop activity for selected routes, service changes and stops.
 }
 \description{
-Get Stop Ridership from T-BIRD
 Export stop level ons, offs and load from DP.STOP_ACTIVITY_DETAIL
 }

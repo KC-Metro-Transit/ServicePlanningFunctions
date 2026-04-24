@@ -1,4 +1,6 @@
-#' Generate plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
+#' Generate plot of ons, offs, and load
+#'
+#' @description Create plots of trip and route ridership by Select Variable and Service Change from get_trip_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_trip_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
@@ -60,6 +62,8 @@ plot_trip_crosstab <- function(
       )
     )
 
+  route_title <- paste0(sort(unique(data$route)), collapse = ", ")
+
   var_title <- unique(plot_data$variable)
 
   axis_title <- dplyr::case_match(
@@ -96,7 +100,7 @@ plot_trip_crosstab <- function(
 
   plt <- ggplot2::ggplot(
     plot_data,
-    aes(
+    ggplot2::aes(
       x = stats::reorder(axis, dplyr::desc(value)),
       y = value,
       fill = stats::reorder(service, service_change_num)
@@ -137,10 +141,20 @@ plot_trip_crosstab <- function(
       ', ',
       'Trip Ridership'
     )) +
-    ggplot2::labs(subtitle = paste(day_title, period_title, sep = ", ")) +
+    ggplot2::labs(
+      subtitle = paste(day_title, period_title, sep = ", "),
+      caption = stringr::str_wrap(
+        paste(
+          "Plot shows data for trips on route(s)",
+          route_title,
+          sep = " "
+        ),
+        width = 100
+      )
+    ) +
     ggplot2::scale_x_discrete(
       labels = scales::label_wrap(10),
-      guide = guide_axis(angle = 45)
+      guide = ggplot2::guide_axis(angle = 45)
     ) +
     ServicePlanningFunctions::style_kcm()
   plt

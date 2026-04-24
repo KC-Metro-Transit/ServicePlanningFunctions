@@ -1,45 +1,103 @@
 #' ggplot engine for stop level ridership plots
-#' @description Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
+#' Generate plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
 #' @param dataframe Dataframe. Output from get_stop_ridership().
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.
-#' @param stop_id A vector of stop IDs or "All" if all stops on a route are of interest. Defaults to "All"
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
+#' @param direction Character. "I" or "O". Can accept both.
 #' @param x_axis Character. Grouping variable based on columns found in output from get_stop_ridership(). period, hour, route, route_name.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, rider - Total Stop Activity
-#'
+#' @param start_stop Numeric. Stop at the beginning of the segment of interest. Will be included in results.
+#' @param end_stop Numeric. Stop at the end of the segment of interest. Will be included in results.
 #' @returns A ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_stop_ridership()
 #'
 #' @export
-plot_stop_crosstab <- function(
+plot_segment_ridership <- function(
   dataframe,
   service_change_num,
   route,
-  stop_id = "All",
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  x_axis,
-  activity_type = 'ons'
+  direction = c("I", "O"),
+  x_axis = "rider",
+  activity_type = 'ons',
+  start_stop,
+  end_stop
 ) {
-  if ("All" %in% stop_id) {
-    data <- dataframe %>%
-      dplyr::filter(
-        day_part_cd %in% .env$time_period,
-        service_change_num %in% .env$service_change_num,
-        route %in% .env$route
-      ) %>%
-      dplyr::rename(period = time_period_at_stop)
-  } else {
-    data <- dataframe %>%
-      dplyr::filter(
-        day_part_cd %in% .env$time_period,
-        service_change_num %in% .env$service_change_num,
-        route %in% .env$route,
-        stop_id %in% .env$stop_id
-      ) %>%
-      dplyr::rename(period = time_period_at_stop)
+  data <- dataframe %>%
+    dplyr::filter(
+      day_part_cd %in% .env$time_period,
+      service_change_num %in% .env$service_change_num,
+      route %in% .env$route,
+      direction %in% .env$direction
+    ) %>%
+    dplyr::rename(period = time_period_at_stop) |>
+    dplyr::mutate(route = paste0(route, express_local_cd))
+
+  start_stop_id_df <- dplyr::filter(data, stop_id %in% start_stop) |>
+    dplyr::distinct(
+      service_change_num,
+      stop_id,
+      route,
+      express_local_cd,
+      direction,
+      stop_sequence_num
+    ) |>
+    dplyr::rename(start_stop_seq = stop_sequence_num) |>
+    dplyr::select(-stop_id)
+
+  if (
+    length(unique(start_stop_id_df$start_stop_seq)) > 1 &
+      length(unique(start_stop_id_df$route)) == 1
+  ) {
+    cli::cli_abort(
+      message = "Value provided for start_stop is used multiple times in route pattern."
+    )
   }
-  plot_data <- data %>%
+
+  end_stop_id_df <- dplyr::filter(data, stop_id %in% end_stop) |>
+    dplyr::distinct(
+      service_change_num,
+      stop_id,
+      route,
+      express_local_cd,
+      direction,
+      stop_sequence_num
+    ) |>
+    dplyr::rename(end_stop_seq = stop_sequence_num) |>
+    dplyr::select(-stop_id)
+
+  if (
+    length(unique(end_stop_id_df$end_stop_seq)) > 1 &
+      length(unique(end_stop_id_df$route)) == 1
+  ) {
+    cli::cli_abort(
+      message = "Value provided for end_stop is used multiple times in route pattern."
+    )
+  }
+
+  filtered_data <- data %>%
+    dplyr::left_join(
+      start_stop_id_df,
+      by = c("service_change_num", "route", "express_local_cd", "direction")
+    ) |>
+    dplyr::left_join(
+      end_stop_id_df,
+      c("service_change_num", "route", "express_local_cd", "direction")
+    ) |>
+    dplyr::mutate(
+      include_stop = dplyr::case_when(
+        stop_sequence_num >= start_stop_seq &
+          stop_sequence_num <= end_stop_seq ~ 1,
+        TRUE ~ 0
+      )
+    ) |>
+    dplyr::filter(
+      include_stop == 1
+    ) |>
+    dplyr::arrange(stop_id)
+
+  plot_data <- filtered_data |>
     dplyr::group_by_at(dplyr::vars(service_change_num, service, x_axis)) %>%
     dplyr::select(service_change_num, service, 'axis' = x_axis, ons, offs) %>%
     dplyr::summarise(
@@ -83,15 +141,9 @@ plot_stop_crosstab <- function(
     paste0(unique(data$day), collapse = ", ")
   )
 
-  stop_title <- ifelse(
-    "All" %in% stop_id,
-    paste0('all stops on route(s)'),
-    paste0(
-      sort(unique(
-        data$stop_id
-      )),
-      collapse = ", "
-    )
+  stop_title <- stringr::str_wrap(
+    paste0(unique(filtered_data$stop_id), collapse = ", "),
+    width = 50
   )
 
   route_title <- paste0(sort(unique(data$route)), collapse = ", ")
@@ -152,16 +204,20 @@ plot_stop_crosstab <- function(
       ' by ',
       axis_title,
       ', ',
-      'Stop Ridership'
+      'Segment Ridership'
     )) +
     ggplot2::labs(
-      subtitle = paste(day_title, period_title, sep = ", "),
+      subtitle = paste(
+        day_title,
+        period_title,
+        sep = ", "
+      ),
       caption = stringr::str_wrap(
         paste(
           "Plot shows data for stops on route(s)",
           route_title,
           "at stops",
-          stop_title,
+          stringr::str_wrap(stop_title, width = 50),
           sep = " "
         ),
         width = 100

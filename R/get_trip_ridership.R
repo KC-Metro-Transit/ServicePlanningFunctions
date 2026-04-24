@@ -1,4 +1,5 @@
-#' Get Trip Ridership from T-BIRD Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
+#' Get Trip Ridership from T-BIRD
+#' @description Export trip level ons, offs, and load from DP.VW_TRIP_SUMMARY
 #'
 #' @param service_change_num Numeric. The three-digit identifier of the service change. Can accept multiple values as a vector.
 #' @param route Numeric. The route identifiers of interest. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector.

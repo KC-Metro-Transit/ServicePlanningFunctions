@@ -1,6 +1,6 @@
 #' Get Routes by Area
 #'
-#' Returns a map or table of stops within a specified area. Areas are based on the LOCUS districts shapefile. Use show_areas() to see a map of all available areas.
+#' @description Returns a map or table of stops within a specified area. Areas are based on the LOCUS districts shapefile. Use show_areas() to see a map of all available areas.
 #'
 #' @param area Character. The name of the LOCUS or KC district of interest. Can accept multiples.
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
