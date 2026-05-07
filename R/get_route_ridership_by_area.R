@@ -23,11 +23,11 @@ get_route_ridership_by_area <- function(
   gtfs_date,
   service_change_num,
   tbird_connection,
-  return_type,
-  sched_day_type_coded_num,
-  time_period = c("AM", "PM", "MID", "XEV", "XNT"),
+  return_type = "interactive_map",
+  sched_day_type_coded_num = c(0, 1, 2),
+  time_period = c("AM", "PM", "MSID", "XEV", "XNT"),
   activity_type = 'ons',
-  data_source
+  data_source = 'LOCUS'
 ) {
   routes <- get_routes_by_area(
     area = area,
@@ -47,8 +47,8 @@ get_route_ridership_by_area <- function(
   ) %>%
     dplyr::filter(
       day_part_cd %in% time_period,
-      service_change_num %in% service_change_num,
-      sched_day_type_coded_num %in% sched_day_type_coded_num
+      service_change_num %in% .env$service_change_num #,
+      # sched_day_type_coded_num %in% sched_day_type_coded_num
     ) |>
     dplyr::mutate(service_rte_num = as.character(route))
 

@@ -16,9 +16,9 @@ plot_stop_crosstab <- function(
   dataframe,
   service_change_num,
   route,
-  stop_id = "All",
+  stop_id = 'All',
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  x_axis,
+  x_axis = 'period',
   activity_type = 'ons'
 ) {
   if ("All" %in% stop_id) {

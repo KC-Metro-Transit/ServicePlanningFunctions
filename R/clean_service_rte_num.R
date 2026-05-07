@@ -42,6 +42,12 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
 
   routes_na <- routes %>%
     dplyr::mutate(
+      route_short_name = dplyr::coalesce(
+        route_short_name,
+        route_long_name
+      )
+    ) |>
+    dplyr::mutate(
       service_rte_num = dplyr::case_when(
         route_short_name == "A" ~ "671",
         route_short_name == "B" ~ "672",
@@ -74,6 +80,9 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         route_short_name == "Swift Green" ~ "702",
         route_short_name == "Swift Orange" ~ "703",
         route_short_name == "STCL" ~ "999",
+        route_short_name == "Main Loop" ~ "9000",
+        route_short_name == "Evening Hotel Loop" ~ "9001",
+        route_short_name == "DART 249" ~ "249",
         .default = dplyr::coalesce(route_short_name, route_long_name)
       )
     )
@@ -129,7 +138,7 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
     }
 
     # Append user updated route records back to clean_routes
-    clean_routes <- filter(
+    clean_routes <- dplyr::filter(
       clean_routes,
       !is.na(as.numeric(service_rte_num)) &
         !is.null(as.numeric(service_rte_num))

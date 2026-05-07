@@ -28,7 +28,7 @@ plot_route_ridership_by_area <- function(
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons',
   data_source,
-  x_axis
+  x_axis = 'period'
 ) {
   routes <- get_routes_by_area(
     area = area,
