@@ -26,8 +26,8 @@
 get_route_productivity <- function(
   service_change,
   tbird_connection,
-  period_type,
-  sched_day_type_coded_num,
+  period_type = "day_part_cd",
+  sched_day_type_coded_num = c(0, 1, 2),
   filter_routes = FALSE,
   route
 ) {

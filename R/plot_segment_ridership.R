@@ -19,7 +19,7 @@ plot_segment_ridership <- function(
   route,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   direction = c("I", "O"),
-  x_axis = "rider",
+  x_axis = 'period',
   activity_type = 'ons',
   start_stop,
   end_stop

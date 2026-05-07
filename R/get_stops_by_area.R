@@ -15,8 +15,8 @@ get_stops_by_area <- function(
   area,
   gtfs_date,
   tbird_connection,
-  return_type,
-  data_source
+  return_type = 'interactive_map',
+  data_source = 'LOCUS'
 ) {
   #get gtfs data that best matches gtfs_date from tbird
   min_date <- as.character(min(gtfs_date))
@@ -98,13 +98,18 @@ get_stops_by_area <- function(
     y = geography,
     join = sf::st_intersects
   ) |>
-    sf::st_transform(4326)
+    sf::st_transform(4326) |>
+    dplyr::mutate(stop_id_str = as.character(stop_id))
 
   if (return_type == "table") {
     filtered_stops
   } else if (return_type == "interactive_map") {
     mapview::mapviewOptions(basemaps = "CartoDB.Positron")
-    mapview::mapview(map_data, zcol = "stop_id")
+    mapview::mapview(
+      filtered_stops,
+      zcol = "stop_id_str",
+      layer.name = "King County Metro Stops"
+    )
   } else {
     cli::cli_abort(
       message = "Incorrect return type parameter. Options are 'table' or 'interactive_map'. The 'table' option returns a spatial dataframe."
