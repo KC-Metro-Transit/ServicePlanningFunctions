@@ -54,7 +54,7 @@ get_stop_ridership_by_area <- function(
     dplyr::filter(service_change_num %in% .env$service_change_num) |>
     dplyr::distinct(stop_id, route_name, service) |>
     dplyr::group_by(stop_id, service) |>
-    dplyr::mutate(routes_at_stop = toString(route_name)) |>
+    dplyr::mutate(routes_at_stop = toString(sort(route_name))) |>
     dplyr::ungroup() |>
     dplyr::select(-route_name) |>
     dplyr::distinct()
