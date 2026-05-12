@@ -10,10 +10,10 @@ get_stop_ridership_by_area(
   service_change_num,
   route = "All",
   tbird_connection,
-  return_type,
+  return_type = "interactive_map",
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = "ons",
-  data_source
+  data_source = "LOCUS"
 )
 }
 \arguments{

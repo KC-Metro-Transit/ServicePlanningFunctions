@@ -9,12 +9,11 @@ get_route_ridership_by_area(
   gtfs_date,
   service_change_num,
   tbird_connection,
-  return_type,
-  sched_day_type_coded_num,
+  return_type = "interactive_map",
+  sched_day_type_coded_num = c(0, 1, 2),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = "ons",
-  data_source,
-  x_axis = NULL
+  data_source = "LOCUS"
 )
 }
 \arguments{
@@ -27,7 +26,7 @@ Can accept multiple values as a vector if you are returning a table. For maps, s
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 
-\item{return_type}{Character. Specify what you want to see. Options are "table", "plot", and "interactive_map".}
+\item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
 
 \item{sched_day_type_coded_num}{Numeric. 0 = Weekday, 1 = Saturday, 2 = Sunday.}
 
@@ -36,8 +35,6 @@ Can accept multiple values as a vector if you are returning a table. For maps, s
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
 
 \item{data_source}{Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'}
-
-\item{x_axis}{Character. Only required if returning a plot. Options are 'neighborhood', 'route', 'period', 'hour'.}
 }
 \value{
 Interactive map object or dataframe of route ridership summed by selected periods.

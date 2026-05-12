@@ -45,7 +45,7 @@ get_routes_by_area <- function(
       dplyr::mutate(selected_dates = lubridate::as_date(selected_dates)) |>
       dplyr::left_join(
         capture_dates,
-        by = dplyr::join_by(closest(selected_dates > capture_date))
+        by = dplyr::join_by(closest(selected_dates >= capture_date))
       ) |>
       dplyr::mutate(capture_date = paste0("'", capture_date, "'"))
 

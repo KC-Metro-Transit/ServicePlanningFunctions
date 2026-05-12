@@ -4,7 +4,13 @@
 \alias{get_stops_by_area}
 \title{Get Stops by Area}
 \usage{
-get_stops_by_area(area, gtfs_date, tbird_connection, return_type, data_source)
+get_stops_by_area(
+  area,
+  gtfs_date,
+  tbird_connection,
+  return_type = "interactive_map",
+  data_source = "LOCUS"
+)
 }
 \arguments{
 \item{area}{Character. The name of the LOCUS district of interest. Can accept multiples.}
