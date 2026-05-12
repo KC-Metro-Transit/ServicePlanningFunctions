@@ -213,6 +213,11 @@ get_routes_by_area <- function(
       janitor::clean_names()
   }
 
+  gtfs_routes <- gtfs_routes %>%
+    dplyr::group_split(capture_date) %>%
+    purrr::map(ServicePlanningFunctions::clean_service_rte_num) %>%
+    dplyr::bind_rows()
+
   if (length(gtfs_date) > 1) {
     shapes <- DBI::dbGetQuery(
       tbird_connection,
