@@ -213,9 +213,9 @@ get_routes_by_area <- function(
       janitor::clean_names()
   }
 
-  gtfs_routes <- gtfs_routes %>%
-    dplyr::group_split(capture_date) %>%
-    purrr::map(ServicePlanningFunctions::clean_service_rte_num) %>%
+  gtfs_routes <- gtfs_routes |>
+    dplyr::group_split(capture_date) |>
+    purrr::map(ServicePlanningFunctions::clean_service_rte_num) |>
     dplyr::bind_rows()
 
   if (length(gtfs_date) > 1) {
@@ -293,6 +293,7 @@ get_routes_by_area <- function(
       route_id,
       shape_id,
       direction,
+      service_rte_num,
       route_short_name,
       route_long_name,
       capture_date
@@ -301,6 +302,7 @@ get_routes_by_area <- function(
       route_id,
       shape_id,
       direction,
+      service_rte_num,
       route_short_name,
       route_long_name,
       capture_date,
@@ -316,6 +318,7 @@ get_routes_by_area <- function(
       route_name = dplyr::coalesce(route_short_name, route_long_name)
     ) |>
     dplyr::select(
+      service_rte_num,
       route_name,
       route_short_name,
       route_long_name,
