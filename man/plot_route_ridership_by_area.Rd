@@ -13,8 +13,8 @@ plot_route_ridership_by_area(
   sched_day_type_coded_num,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = "ons",
-  data_source,
-  x_axis
+  data_source = "LOCUS",
+  x_axis = "period"
 )
 }
 \arguments{

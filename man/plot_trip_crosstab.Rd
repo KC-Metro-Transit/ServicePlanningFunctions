@@ -10,7 +10,7 @@ plot_trip_crosstab(
   route,
   day = c("Weekday", "Saturday", "Sunday"),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
-  x_axis,
+  x_axis = "period",
   activity_type = "ons"
 )
 }

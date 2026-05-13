@@ -12,10 +12,10 @@ productivity period analysis and day part level analysis. Multiple
 service changes are also supported.}
 \usage{
 get_productivity_thresholds(
-  service_change,
+  service_change = 251,
   tbird_connection,
-  period_type,
-  sched_day_type_coded_num
+  period_type = "service_guidelines",
+  sched_day_type_coded_num = c(0, 1, 2)
 )
 }
 \arguments{

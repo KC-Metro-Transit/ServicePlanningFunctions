@@ -4,7 +4,13 @@
 \alias{get_routes_by_area}
 \title{Get Routes by Area}
 \usage{
-get_routes_by_area(area, gtfs_date, tbird_connection, return_type, data_source)
+get_routes_by_area(
+  area,
+  gtfs_date,
+  tbird_connection,
+  return_type = "interactive_map",
+  data_source = "LOCUS"
+)
 }
 \arguments{
 \item{area}{Character. The name of the LOCUS or KC district of interest. Can accept multiples.}

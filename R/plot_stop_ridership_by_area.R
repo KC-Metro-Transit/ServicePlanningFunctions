@@ -22,12 +22,12 @@ plot_stop_ridership_by_area <- function(
   area,
   gtfs_date,
   service_change_num,
-  route = "All",
+  route = 'All',
   tbird_connection,
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons',
-  data_source,
-  x_axis
+  data_source = 'LOCUS',
+  x_axis = 'period'
 ) {
   stops <- get_stops_by_area(
     area = area,

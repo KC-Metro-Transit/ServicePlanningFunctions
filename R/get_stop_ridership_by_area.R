@@ -22,10 +22,10 @@ get_stop_ridership_by_area <- function(
   service_change_num,
   route = "All",
   tbird_connection,
-  return_type,
+  return_type = 'interactive_map',
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons',
-  data_source
+  data_source = 'LOCUS'
 ) {
   stops <- get_stops_by_area(
     area = area,
@@ -54,7 +54,7 @@ get_stop_ridership_by_area <- function(
     dplyr::filter(service_change_num %in% .env$service_change_num) |>
     dplyr::distinct(stop_id, route_name, service) |>
     dplyr::group_by(stop_id, service) |>
-    dplyr::mutate(routes_at_stop = toString(route_name)) |>
+    dplyr::mutate(routes_at_stop = toString(sort(route_name))) |>
     dplyr::ungroup() |>
     dplyr::select(-route_name) |>
     dplyr::distinct()
@@ -99,34 +99,34 @@ get_stop_ridership_by_area <- function(
         TRUE ~ variable
       )
     )
+  geo_rides <- stops |>
+    dplyr::distinct(.keep_all = TRUE) |>
+    dplyr::left_join(plot_data, by = c("stop_id" = "stop_id")) |>
+    dplyr::left_join(
+      routes_at_stop,
+      by = c("stop_id", "service")
+    ) |>
+    tidyr::drop_na(value) |>
+    sf::st_transform(4326)
 
-  if (length(service_change_num) != 1) {
-    cli::cli_abort(message = "Choose only 1 service change for each map.")
-  } else {
-    map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
-
-    time_period_data <- factor(
-      unique(rides$period),
-      levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
-      labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
-      ordered = TRUE
-    )
-
-    time_period_label <- stringr::str_flatten_comma(sort(time_period_data))
-
-    geo_rides <- stops |>
-      dplyr::distinct(.keep_all = TRUE) |>
-      dplyr::left_join(plot_data, by = c("stop_id" = "stop_id")) |>
-      dplyr::left_join(
-        routes_at_stop,
-        by = c("stop_id", "service")
-      ) |>
-      tidyr::drop_na(value) |>
-      sf::st_transform(4326)
-  }
   if (return_type == "table") {
     geo_rides
   } else if (return_type == "interactive_map") {
+    if (length(service_change_num) != 1) {
+      cli::cli_abort(message = "Choose only 1 service change for each map.")
+    } else {
+      map_type_label <- stringr::str_flatten_comma(unique(plot_data$variable))
+
+      time_period_data <- factor(
+        unique(rides$period),
+        levels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
+        labels = c("AM Peak", "Midday", "PM Peak", "Evening", "Night"),
+        ordered = TRUE
+      )
+
+      time_period_label <- stringr::str_flatten_comma(sort(time_period_data))
+    }
+
     if (data_source == "LOCUS") {
       geography <- sf::read_sf(fs::path_package(
         'extdata',

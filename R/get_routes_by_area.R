@@ -15,15 +15,68 @@ get_routes_by_area <- function(
   area,
   gtfs_date,
   tbird_connection,
-  return_type,
-  data_source
+  return_type = 'interactive_map',
+  data_source = 'LOCUS'
 ) {
   #get gtfs data that best matches gtfs_date from tbird
 
-  stops <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      "SELECT stop_id, 
+  if (length(gtfs_date) > 1) {
+    min_date <- lubridate::as_date(min(gtfs_date)) - 14
+    min_date <- as.character(min_date)
+    max_date <- as.character(max(gtfs_date))
+    capture_dates <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "select distinct
+      capture_date
+      from gtfs.agency
+       where (capture_date <= cast({(vals1)} as date) and
+      capture_date >= cast({(vals2)} as date))",
+        vals1 = max_date,
+        vals2 = min_date,
+        .con = tbird_connection
+      )
+    )
+
+    gtfs_date_df <- tibble::as_tibble_col(
+      gtfs_date,
+      column_name = "selected_dates"
+    ) |>
+      dplyr::mutate(selected_dates = lubridate::as_date(selected_dates)) |>
+      dplyr::left_join(
+        capture_dates,
+        by = dplyr::join_by(closest(selected_dates >= capture_date))
+      ) |>
+      dplyr::mutate(capture_date = paste0("'", capture_date, "'"))
+
+    return_dates <- toString(gtfs_date_df$capture_date)
+
+    cli::cli_alert(
+      text = "Returning GTFS data for capture dates ({return_dates})"
+    )
+  }
+
+  if (length(gtfs_date) > 1) {
+    stops <- DBI::dbGetQuery(
+      tbird_connection,
+      paste0(
+        "SELECT stop_id, 
+      stop_lat, 
+      stop_lon, 
+      capture_date
+      from gtfs.stops
+        where capture_date in (",
+        return_dates,
+        ")"
+      )
+    ) |>
+      sf::st_as_sf(coords = c("stop_lon", "stop_lat"), crs = 4326) |>
+      sf::st_transform(2926)
+  } else {
+    stops <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT stop_id, 
       stop_lat, 
       stop_lon, 
       capture_date
@@ -32,17 +85,36 @@ get_routes_by_area <- function(
       from gtfs.stops
       where capture_date <= cast({(vals1)} as date)
       order by capture_date desc)",
-      vals1 = gtfs_date,
-      .con = tbird_connection
-    )
-  ) |>
-    sf::st_as_sf(coords = c("stop_lon", "stop_lat"), crs = 4326) |>
-    sf::st_transform(2926)
+        vals1 = gtfs_date,
+        .con = tbird_connection
+      )
+    ) |>
+      sf::st_as_sf(coords = c("stop_lon", "stop_lat"), crs = 4326) |>
+      sf::st_transform(2926)
+  }
 
-  stop_times <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      "SELECT trip_id, 
+  if (length(gtfs_date) > 1) {
+    capture_dates <- unique(stops$capture_date)
+
+    stop_times <- DBI::dbGetQuery(
+      tbird_connection,
+      paste0(
+        "SELECT trip_id, 
+      arrival_time, 
+      departure_time, 
+      stop_id,
+      capture_date
+      from gtfs.stop_times
+      where capture_date in (",
+        return_dates,
+        ")"
+      )
+    )
+  } else {
+    stop_times <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT trip_id, 
       arrival_time, 
       departure_time, 
       stop_id,
@@ -52,14 +124,42 @@ get_routes_by_area <- function(
       from gtfs.stop_times
       where capture_date <= cast({(vals1)} as date)
       order by capture_date desc)",
-      vals1 = gtfs_date,
-      .con = tbird_connection
+        vals1 = gtfs_date,
+        .con = tbird_connection
+      )
     )
-  )
-  trips <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      "SELECT trip_id, 
+  }
+
+  if (length(gtfs_date) > 1) {
+    trips <- DBI::dbGetQuery(
+      tbird_connection,
+      paste0(
+        "SELECT trip_id, 
+      route_id, 
+      service_id, 
+      block_id,
+      shape_id,
+      direction_id,
+      capture_date
+      from gtfs.trips
+      where capture_date in (",
+        return_dates,
+        ")"
+      )
+    ) |>
+      janitor::clean_names() |>
+      dplyr::mutate(
+        direction = dplyr::case_when(
+          direction_id == 1 ~ 'I',
+          direction_id == 0 ~ 'O',
+          TRUE ~ ""
+        )
+      )
+  } else {
+    trips <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT trip_id, 
       route_id, 
       service_id, 
       block_id,
@@ -71,56 +171,82 @@ get_routes_by_area <- function(
       from gtfs.trips
       where capture_date <= cast({(vals1)} as date)
       order by capture_date desc)",
-      vals1 = gtfs_date,
-      .con = tbird_connection
-    )
-  ) |>
-    janitor::clean_names() |>
-    dplyr::mutate(
-      direction = dplyr::case_when(
-        direction_id == 1 ~ 'I',
-        direction_id == 0 ~ 'O',
-        TRUE ~ ""
+        vals1 = gtfs_date,
+        .con = tbird_connection
       )
-    )
-
-  gtfs_routes <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      "SELECT *
+    ) |>
+      janitor::clean_names() |>
+      dplyr::mutate(
+        direction = dplyr::case_when(
+          direction_id == 1 ~ 'I',
+          direction_id == 0 ~ 'O',
+          TRUE ~ ""
+        )
+      )
+  }
+  if (length(gtfs_date) > 1) {
+    gtfs_routes <- DBI::dbGetQuery(
+      tbird_connection,
+      paste0(
+        "SELECT *
       from gtfs.routes
-      where capture_date = (SELECT top 1 capture_date
+    where capture_date in (",
+        return_dates,
+        ")"
+      )
+    ) |>
+      janitor::clean_names()
+  } else {
+    gtfs_routes <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT *
+      from gtfs.routes
+       where capture_date = (SELECT top 1 capture_date
       from gtfs.routes
       where capture_date <= cast({(vals1)} as date)
       order by capture_date desc)",
-      vals1 = gtfs_date,
-      .con = tbird_connection
-    )
-  ) |>
-    janitor::clean_names() |>
-    dplyr::select(-capture_date)
+        vals1 = gtfs_date,
+        .con = tbird_connection
+      )
+    ) |>
+      janitor::clean_names()
+  }
 
-  gtfs_clean_routes <- ServicePlanningFunctions::clean_service_rte_num(
-    gtfs_routes,
-    netplan_gtfs = FALSE
-  )
+  gtfs_routes <- gtfs_routes |>
+    dplyr::group_split(capture_date) |>
+    purrr::map(ServicePlanningFunctions::clean_service_rte_num) |>
+    dplyr::bind_rows()
 
-  shapes <- DBI::dbGetQuery(
-    tbird_connection,
-    glue::glue_sql(
-      "SELECT *
+  if (length(gtfs_date) > 1) {
+    shapes <- DBI::dbGetQuery(
+      tbird_connection,
+      paste0(
+        "SELECT *
+      from gtfs.shapes
+    where capture_date in (",
+        return_dates,
+        ")"
+      )
+    ) |>
+      janitor::clean_names()
+  } else {
+    shapes <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT *
       from gtfs.shapes
       where capture_date = (SELECT top 1 capture_date
       from gtfs.shapes
       where capture_date <= cast({(vals1)} as date)
       order by capture_date desc)",
-      vals1 = gtfs_date,
-      .con = tbird_connection
-    )
-  ) |>
-    janitor::clean_names()
+        vals1 = gtfs_date,
+        .con = tbird_connection
+      )
+    ) |>
+      janitor::clean_names()
+  }
 
-  shapes <- tidytransit::shapes_as_sf(shapes, crs = 4326)
   # get area boundary from raw_data folder
   # filter to polygon(s) identified
 
@@ -144,7 +270,7 @@ get_routes_by_area <- function(
       sf::st_transform(2926)
   } else {
     cli::cli_abort(
-      message = "Incorrect data_source  parameter. Options are 'LOCUS' or 'King County Council Districts'."
+      message = "Incorrect data_source parameter. Options are 'LOCUS' or 'King County Council Districts'."
     )
   }
 
@@ -160,8 +286,8 @@ get_routes_by_area <- function(
 
   filtered_trips <- stop_times |>
     dplyr::filter(stop_id %in% stop_ids) |>
-    dplyr::left_join(trips) |>
-    dplyr::left_join(gtfs_clean_routes) |>
+    dplyr::inner_join(trips, by = c("capture_date", "trip_id")) |>
+    dplyr::left_join(gtfs_routes) |>
     dplyr::select(
       trip_id,
       route_id,
@@ -169,40 +295,70 @@ get_routes_by_area <- function(
       direction,
       service_rte_num,
       route_short_name,
-      route_long_name
+      route_long_name,
+      capture_date
     ) |>
     dplyr::distinct(
-      trip_id,
       route_id,
       shape_id,
-      service_rte_num,
       direction,
+      service_rte_num,
       route_short_name,
-      route_long_name
+      route_long_name,
+      capture_date,
+      .keep_all = TRUE
     ) |>
     dplyr::mutate(shape_id = as.character(shape_id))
 
   routes_in_area <- shapes |>
-    dplyr::filter(shape_id %in% filtered_trips$shape_id) |>
-    dplyr::left_join(
-      filtered_trips
+    dplyr::mutate(shape_id = as.character(shape_id)) |>
+    dplyr::right_join(filtered_trips) |>
+    dplyr::distinct(shape_id, capture_date, .keep_all = TRUE) |>
+    dplyr::mutate(
+      route_name = dplyr::coalesce(route_short_name, route_long_name)
     ) |>
     dplyr::select(
       service_rte_num,
+      route_name,
       route_short_name,
       route_long_name,
       shape_id,
       direction,
-      geometry
+      capture_date
     ) |>
-    dplyr::group_by(shape_id) |>
+    dplyr::group_by(shape_id, capture_date) |>
     dplyr::slice_head(n = 1)
 
+  shapes_in_area_geo <- shapes |>
+    dplyr::mutate(shape_id = as.character(shape_id)) |>
+    dplyr::right_join(routes_in_area) |>
+    dplyr::group_split(capture_date)
+
+  routes_in_area_geo <- list()
+
+  for (i in 1:length(shapes_in_area_geo)) {
+    routes_in_area_geo[[i]] <- shapes_in_area_geo[[i]] |>
+      tidytransit::shapes_as_sf(crs = 4326) |>
+      dplyr::left_join(dplyr::filter(
+        routes_in_area,
+        capture_date == unique(shapes_in_area_geo[[i]]$capture_date)
+      )) |>
+      dplyr::mutate(
+        route_date = paste(route_short_name, capture_date, sep = ": ")
+      )
+  }
+
+  routes_in_area_geo <- dplyr::bind_rows(routes_in_area_geo)
+
   if (return_type == "table") {
-    routes_in_area
+    routes_in_area_geo
   } else if (return_type == "interactive_map") {
     mapview::mapviewOptions(basemaps = "CartoDB.Positron")
-    mapview::mapview(routes_in_area, zcol = "service_rte_num")
+    mapview::mapview(
+      routes_in_area_geo,
+      zcol = "route_date",
+      layer.name = "Routes by GTFS Date"
+    )
   } else {
     cli::cli_abort(
       message = "Incorrect return type parameter. Options are 'table' or 'interactive_map'. The 'table' option returns a spatial dataframe."
