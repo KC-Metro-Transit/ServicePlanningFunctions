@@ -329,14 +329,26 @@ get_routes_by_area <- function(
     dplyr::group_by(shape_id, capture_date) |>
     dplyr::slice_head(n = 1)
 
-  routes_in_area_geo <- shapes |>
+  shapes_in_area_geo <- shapes |>
     dplyr::mutate(shape_id = as.character(shape_id)) |>
     dplyr::right_join(routes_in_area) |>
-    tidytransit::shapes_as_sf(crs = 4326) |>
-    dplyr::left_join(routes_in_area) |>
-    dplyr::mutate(
-      route_date = paste(route_short_name, capture_date, sep = ": ")
-    )
+    dplyr::group_split(capture_date)
+
+  routes_in_area_geo <- list()
+
+  for (i in 1:length(shapes_in_area_geo)) {
+    routes_in_area_geo[[i]] <- shapes_in_area_geo[[i]] |>
+      tidytransit::shapes_as_sf(crs = 4326) |>
+      dplyr::left_join(dplyr::filter(
+        routes_in_area,
+        capture_date == unique(shapes_in_area_geo[[i]]$capture_date)
+      )) |>
+      dplyr::mutate(
+        route_date = paste(route_short_name, capture_date, sep = ": ")
+      )
+  }
+
+  routes_in_area_geo <- dplyr::bind_rows(routes_in_area_geo)
 
   if (return_type == "table") {
     routes_in_area_geo

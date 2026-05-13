@@ -125,7 +125,7 @@ get_route_ridership_by_area <- function(
       geo_rides <- routes |>
         dplyr::left_join(
           plot_data,
-          by = c("service_rte_num" = "service_rte_num")
+          by = c("service_rte_num", "route_name")
         ) |>
         sf::st_transform(4326)
     }
