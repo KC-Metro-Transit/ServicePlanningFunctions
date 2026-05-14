@@ -134,6 +134,15 @@ plot_trip_crosstab <- function(
   plt <- plt +
     ggplot2::geom_col(position = ggplot2::position_dodge()) +
     viridis::scale_fill_viridis(discrete = TRUE, name = 'Legend') +
+    ggplot2::geom_text(
+      ggplot2::aes(
+        label = scales::comma(value),
+        group = stats::reorder(service, service_change_num)
+      ),
+      vjust = -1,
+      size = 5,
+      position = ggplot2::position_dodge2(width = 1)
+    ) +
     ggplot2::ggtitle(paste0(
       var_title,
       ' by ',
@@ -156,6 +165,8 @@ plot_trip_crosstab <- function(
       labels = scales::label_wrap(10),
       guide = ggplot2::guide_axis(angle = 45)
     ) +
+    ggplot2::scale_y_continuous(labels = scales::label_comma()) +
+
     ServicePlanningFunctions::style_kcm()
   plt
 }
