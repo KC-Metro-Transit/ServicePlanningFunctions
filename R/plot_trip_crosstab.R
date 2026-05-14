@@ -141,7 +141,7 @@ plot_trip_crosstab <- function(
       ),
       vjust = -1,
       size = 5,
-      position = ggplot2::position_dodge2(width = 1)
+      position = ggplot2::position_dodge(width = .9)
     ) +
     ggplot2::ggtitle(paste0(
       var_title,
