@@ -12,19 +12,25 @@ plot_productivity_distribution <- function(
     'day_part_cd',
     0,
     FALSE
-  ) %>%
-    pivot_longer(
+  ) |>
+    tidyr::pivot_longer(
       cols = c(rides_per_platform_hour:psngr_miles_per_platform_mile),
       names_to = "variable",
       values_to = "value"
-    ) %>%
-    filter(variable == activity_type & day_part_cd == 'DAY') %>%
-    unite(route, service_rte_num:express_local_cd, sep = "", remove = FALSE)
+    ) |>
+    dplyr::filter(variable == activity_type & day_part_cd == 'DAY') |>
+    tidyr::unite(
+      route,
+      service_rte_num:express_local_cd,
+      sep = "",
+      remove = FALSE
+    ) |>
+    dplyr::filter(ons > 0)
 
   binwidth_seq <- seq(0, 100, binwidth)
 
-  data <- trip_productivity %>%
-    mutate(
+  data <- trip_productivity |>
+    dplyr::mutate(
       group = factor(
         ifelse(
           service_rte_num %in% .env$route | is.null(.env$route),
@@ -49,8 +55,8 @@ plot_productivity_distribution <- function(
 
   selection <- data.frame(percentile = names(percentiles), value = percentiles)
 
-  dotplot <- ggplot(data, aes(x = value, fill = group)) +
-    geom_dotplot(
+  dotplot <- ggplot2::ggplot(data, ggplot2::aes(x = value, fill = group)) +
+    ggplot2::geom_dotplot(
       method = 'histodot',
       binwidth = binwidth,
       binpositions = 'all',
@@ -58,26 +64,26 @@ plot_productivity_distribution <- function(
       color = NA
     )
 
-  built <- ggplot_build(dotplot)
+  built <- ggplot2::ggplot_build(dotplot)
   point.pos <- built$data[[1]]
 
-  data2 <- arrange(data, binwidth2, group, value)
+  data2 <- dplyr::arrange(data, binwidth2, group, value)
 
   data2$ytext <- point.pos$stackpos * (0.065 + 0.005 * label_just)
   data2$xtext <- point.pos$x
 
   color_legend <- c('Route' = '#0072BC', 'System' = '#EFEFEF')
 
-  plt <- ggplot(data2, aes(x = value, fill = group)) +
-    geom_dotplot(
+  plt <- ggplot2::ggplot(data2, ggplot2::aes(x = value, fill = group)) +
+    ggplot2::geom_dotplot(
       method = 'histodot',
       binwidth = binwidth,
       binpositions = 'all',
       stackgroups = TRUE,
       color = NA
     ) +
-    geom_text(
-      aes(
+    ggplot2::geom_text(
+      ggplot2::aes(
         xtext,
         ytext,
         label = ifelse(group != 'System', service_rte_num, ''),
@@ -88,13 +94,18 @@ plot_productivity_distribution <- function(
       ),
       show.legend = FALSE
     ) +
-    scale_y_continuous(name = NULL, breaks = NULL) +
-    geom_vline(data = selection, aes(xintercept = value), linetype = 'dashed') +
-    ggtitle(paste0(
-      str_to_title(str_replace_all(activity_type, "_", " ")),
+    ggplot2::scale_x_continuous(limits = c(0, NA)) +
+    ggplot2::scale_y_continuous(name = NULL, breaks = NULL) +
+    ggplot2::geom_vline(
+      data = selection,
+      ggplot2::aes(xintercept = value),
+      linetype = 'dashed'
+    ) +
+    ggplot2::ggtitle(paste0(
+      stringr::str_to_title(stringr::str_replace_all(activity_type, "_", " ")),
       ' Distribution'
     )) +
-    labs(
+    ggplot2::labs(
       y = "",
       x = "",
       subtitle = paste0(
@@ -104,9 +115,9 @@ plot_productivity_distribution <- function(
         ')'
       )
     ) +
-    scale_fill_manual(values = color_legend) +
-    scale_color_manual(values = c("L" = "white", "E" = "#FDB71A")) +
-    annotate(
+    ggplot2::scale_fill_manual(values = color_legend) +
+    ggplot2::scale_color_manual(values = c("L" = "white", "E" = "#FDB71A")) +
+    ggplot2::annotate(
       "text",
       x = percentiles["25%"],
       y = Inf,
@@ -115,7 +126,7 @@ plot_productivity_distribution <- function(
       hjust = -0.25,
       size = 5
     ) +
-    annotate(
+    ggplot2::annotate(
       "text",
       x = percentiles["50%"],
       y = Inf,
@@ -124,7 +135,7 @@ plot_productivity_distribution <- function(
       hjust = -0.25,
       size = 5
     ) +
-    annotate(
+    ggplot2::annotate(
       "text",
       x = percentiles["75%"],
       y = Inf,
