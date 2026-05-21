@@ -8,8 +8,11 @@ plot_productivity_distribution(
   service_change,
   tbird_connection,
   route = NULL,
+  route_gain = NULL,
+  route_maintain = NULL,
+  route_lose = NULL,
   activity_type = "rides_per_platform_hour",
-  binwidth = 2,
+  binwidth = NULL,
   point_size = 20,
   label_size = 4,
   style_size = NULL
@@ -20,11 +23,17 @@ plot_productivity_distribution(
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
 
-\item{route}{Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes.}
+\item{route}{Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes. If any of the route_gain, route_maintain, or route_lose paramenters are populated, this parameter is ignored.}
+
+\item{route_gain}{Numeric. Routes to color as gaining service. Overrides route parameter if used.}
+
+\item{route_maintain}{Numeric. Routes to color as maintaining service. Overrides route parameter if used.}
+
+\item{route_lose}{Numeric. Routes to color as losing service. Overrides route parameter if used.}
 
 \item{activity_type}{Character. rides_per_platform_hour - Rides per Platform Hour, psngr_miles_per_platform_mile - Passenger Miles per Platform Mile}
 
-\item{binwidth}{Numeric. Specifies bin width. Decrease if dots are too close to each other vertically. Increase if dots are too close to each other horizontally.}
+\item{binwidth}{Numeric. Specifies bin width. Decrease if dots are too close to each other vertically. Increase if dots are too close to each other horizontally. Defaults to 2 for rides per platform hour and 1 for passenger miles per platform miles.}
 
 \item{point_size}{Numeric. The diameter of the dots. Adjust so that dots do not overlap one another. Interacts with binwidth.}
 
@@ -44,10 +53,14 @@ con <- connect_to_tbird()
 # Generate Rides per Platform Hour distribution dotplot for Fall 2025 Service Change
 plot_productivity_distribution(service_change = 253, tbird_connection = con)
 
+# Highlight Routes based on Service Gain/Loss
+plot_productivity_distribution(service_change = 253, tbird_connection = con, route_gain = c(8), route_maintain = c(1, 2), route_lose = c(107, 673))
+
 # Generate Passenger Miles per Platform Mile distribution dotplot for Fall 2025 Service Change highlighting RapidRide routes only.
 # Sizing parameters formatted for png download size.
 plot_productivity_distribution(service_change = 253,
- tbird_connection = con, route = c(671, 672, 673, 674, 675, 676, 677, 678),
+ tbird_connection = con,
+ route = c(671, 672, 673, 674, 675, 676, 677, 678),
  activity_type = 'psngr_miles_per_platform_mile',
  binwidth = 1,
  point_size = 6.5,
