@@ -1,3 +1,36 @@
+#' ggplot engine for route-level productivity distribution plots
+#'
+#' @description Generate a distribution dotplot of route productivity metrics from get_route_productivity(). Rides per Platform Hour or Passenger Miles per Platform Mile.
+#'
+#' @param service_change Numeric. The three-digit identifier of the service change.
+#' @param tbird_connection The connection object created by connect_to_tbird()
+#' @param route Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes.
+#' @param activity_type Character. rides_per_platform_hour - Rides per Platform Hour, psngr_miles_per_platform_mile - Passenger Miles per Platform Mile
+#' @param binwidth Numeric. Specifies bin width. Decrease if dots are too close to each other vertically. Increase if dots are too close to each other horizontally.
+#' @param point_size Numeric. The diameter of the dots. Adjust so that dots do not overlap one another. Interacts with binwidth.
+#' @param label_size Numeric. The font size of the dot labels. Adjust so that labels fit within each dot.
+#' @param style_size Numeric. Specifies the sizing style to use with style_kcm(). Defaults to default size. "large" to increase sizing style for pdf/png/jpeg/markdown exports.
+#'
+#' @returns A ggplot2 plot showing distribution dotplot of route productivity metrics.
+#'
+#' @export
+#' @examples
+#' con <- connect_to_tbird()
+#'
+#' # Generate Rides per Platform Hour distribution dotplot for Fall 2025 Service Change
+#' plot_productivity_distribution(service_change = 253, tbird_connection = con)
+#'
+#' # Generate Passenger Miles per Platform Mile distribution dotplot for Fall 2025 Service Change highlighting RapidRide routes only.
+#' # Sizing parameters formatted for png download size.
+#' plot_productivity_distribution(service_change = 253,
+#'  tbird_connection = con, route = c(671, 672, 673, 674, 675, 676, 677, 678),
+#'  activity_type = 'psngr_miles_per_platform_mile',
+#'  binwidth = 1,
+#'  point_size = 6.5,
+#'  label_size = 8,
+#'  style_size = 'large')
+#'
+#' ggplot2::ggsave("RapidRide Passenger Miles per Platform Mile.png", width = 12.5, height = 6.9, units = "in")
 plot_productivity_distribution <- function(
   service_change,
   tbird_connection,
@@ -5,7 +38,7 @@ plot_productivity_distribution <- function(
   activity_type = 'rides_per_platform_hour',
   binwidth = 2,
   point_size = 20,
-  label_size = 3,
+  label_size = 4,
   style_size = NULL
 ) {
   trip_productivity <- get_route_productivity(
