@@ -3,8 +3,10 @@ plot_productivity_distribution <- function(
   tbird_connection,
   route = NULL,
   activity_type = 'rides_per_platform_hour',
-  binwidth = 1.5,
-  label_just = 0
+  binwidth = 2,
+  point_size = 20,
+  label_size = 3,
+  style_size = NULL
 ) {
   trip_productivity <- get_route_productivity(
     service_change,
@@ -69,30 +71,36 @@ plot_productivity_distribution <- function(
 
   data2 <- dplyr::arrange(data, binwidth2, group, value)
 
-  data2$ytext <- point.pos$stackpos * (0.065 + 0.005 * label_just)
+  data2$ytext <- point.pos$stackpos * (0.07)
   data2$xtext <- point.pos$x
 
-  color_legend <- c('Route' = '#0072BC', 'System' = '#EFEFEF')
+  color_legend <- c(
+    'Route' = '#0072BC',
+    'System' = '#EFEFEF',
+    "L" = "white",
+    "E" = "#FDB71A"
+  )
 
   plt <- ggplot2::ggplot(data2, ggplot2::aes(x = value, fill = group)) +
-    ggplot2::geom_dotplot(
-      method = 'histodot',
-      binwidth = binwidth,
-      binpositions = 'all',
-      stackgroups = TRUE,
-      color = NA
+    ggplot2::geom_point(
+      ggplot2::aes(
+        x = xtext,
+        y = ytext,
+        color = group
+      ),
+      size = point_size,
+      show.legend = FALSE
     ) +
     ggplot2::geom_text(
       ggplot2::aes(
-        xtext,
-        ytext,
+        x = xtext,
+        y = ytext,
         label = ifelse(group != 'System', service_rte_num, ''),
-        size = 3,
         family = 'inter',
         fontface = 'bold',
         color = express_local_cd
       ),
-      show.legend = FALSE
+      size = label_size
     ) +
     ggplot2::scale_x_continuous(limits = c(0, NA)) +
     ggplot2::scale_y_continuous(name = NULL, breaks = NULL) +
@@ -115,8 +123,11 @@ plot_productivity_distribution <- function(
         ')'
       )
     ) +
-    ggplot2::scale_fill_manual(values = color_legend) +
-    ggplot2::scale_color_manual(values = c("L" = "white", "E" = "#FDB71A")) +
+    ggplot2::scale_color_manual(
+      values = color_legend,
+      breaks = c('L', 'E'),
+      labels = c('Local', 'Express')
+    ) +
     ggplot2::annotate(
       "text",
       x = percentiles["25%"],
@@ -124,7 +135,7 @@ plot_productivity_distribution <- function(
       label = "25th",
       vjust = 2,
       hjust = -0.25,
-      size = 5
+      size = label_size
     ) +
     ggplot2::annotate(
       "text",
@@ -133,7 +144,7 @@ plot_productivity_distribution <- function(
       label = "50th",
       vjust = 2,
       hjust = -0.25,
-      size = 5
+      size = label_size
     ) +
     ggplot2::annotate(
       "text",
@@ -142,9 +153,17 @@ plot_productivity_distribution <- function(
       label = "75th",
       vjust = 2,
       hjust = -0.25,
-      size = 5
+      size = label_size
     ) +
-    style_kcm(textsize = 'large')
+    ggplot2::labs(
+      caption = paste0(
+        'Plot showing ',
+        length(unique(trip_productivity$route)),
+        ' routes'
+      )
+    ) +
+    style_kcm(textsize = style_size) +
+    ggplot2::theme(legend.key = ggplot2::element_rect(fill = "#0072BC"))
 
   plt
 }
