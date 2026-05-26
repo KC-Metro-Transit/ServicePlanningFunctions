@@ -70,8 +70,8 @@ plot_productivity_distribution <- function(
       sep = "",
       remove = FALSE
     ) |>
-    # Exclude routes that are missing ridership data (DART Routes)
-    dplyr::filter(ons > 0)
+    # Exclude school routes and routes that are missing ridership data (DART Routes)
+    dplyr::filter(ons > 0 & svc_family != 'Other')
 
   # Set default binwidth values based on activity_type if not set
   if (is.null(binwidth)) {
