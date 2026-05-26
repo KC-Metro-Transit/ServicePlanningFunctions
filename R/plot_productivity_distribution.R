@@ -108,6 +108,7 @@ plot_productivity_distribution <- function(
           'System'
         )
       ),
+      selection_group = ifelse(group == 'System', 'System', 'Selection'),
       binwidth = sapply(value, function(x) {
         binwidth_seq[which.min(ifelse(
           binwidth_seq - x < 0,
@@ -127,7 +128,10 @@ plot_productivity_distribution <- function(
 
   # Generate dotplot and save x-y coordinates
   # See https://stackoverflow.com/questions/44991607/how-do-i-label-the-dots-of-a-geom-dotplot-in-ggplot2
-  dotplot <- ggplot2::ggplot(data, ggplot2::aes(x = value, fill = group)) +
+  dotplot <- ggplot2::ggplot(
+    data,
+    ggplot2::aes(x = value, fill = selection_group)
+  ) +
     ggplot2::geom_dotplot(
       method = 'histodot',
       binwidth = binwidth,
@@ -139,7 +143,7 @@ plot_productivity_distribution <- function(
   built <- ggplot2::ggplot_build(dotplot)
   point.pos <- built$data[[1]]
 
-  data2 <- dplyr::arrange(data, binwidth2, group, value)
+  data2 <- dplyr::arrange(data, binwidth2, selection_group, value)
 
   data2$ytext <- point.pos$stackpos * (0.07)
   data2$xtext <- point.pos$x
@@ -175,7 +179,7 @@ plot_productivity_distribution <- function(
       ),
       size = label_size
     ) +
-    ggplot2::scale_x_continuous(limits = c(0, NA)) +
+    ggplot2::scale_x_continuous(breaks = seq(0, 100, 10), limits = c(0, NA)) +
     ggplot2::scale_y_continuous(name = NULL, breaks = NULL) +
     ggplot2::geom_vline(
       data = selection,
