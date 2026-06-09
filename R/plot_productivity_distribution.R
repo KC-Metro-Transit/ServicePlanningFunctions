@@ -4,6 +4,7 @@
 #'
 #' @param service_change Numeric. The three-digit identifier of the service change.
 #' @param tbird_connection The connection object created by connect_to_tbird()
+#' @param svc_family Character. Service Family. Options are 'Urban', 'Suburban', and 'ST'.
 #' @param route Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes. If any of the route_gain, route_maintain, or route_lose paramenters are populated, this parameter is ignored.
 #' @param route_gain Numeric. Routes to color as gaining service. Overrides route parameter if used.
 #' @param route_maintain Numeric. Routes to color as maintaining service. Overrides route parameter if used.
@@ -41,6 +42,7 @@
 plot_productivity_distribution <- function(
   service_change,
   tbird_connection,
+  svc_family = NULL,
   route = NULL,
   route_gain = NULL,
   route_maintain = NULL,
@@ -71,7 +73,20 @@ plot_productivity_distribution <- function(
       remove = FALSE
     ) |>
     # Exclude school routes and routes that are missing ridership data (DART Routes)
-    dplyr::filter(ons > 0 & svc_family != 'Other')
+    dplyr::filter(ons > 0 & svc_family != 'Other') |>
+    dplyr::filter(ifelse(
+      is.null(.env$svc_family),
+      TRUE,
+      svc_family == .env$svc_family
+    ))
+
+  productivity_thresholds <- get_productivity_thresholds(
+    service_change,
+    tbird_connection,
+    'day_part_cd',
+    0
+  ) |>
+    dplyr::filter(day_part_cd == 'DAY' & svc_family == .env$svc_family)
 
   # Set default binwidth values based on activity_type if not set
   if (is.null(binwidth)) {
@@ -155,7 +170,12 @@ plot_productivity_distribution <- function(
     'Maintains Service' = '#0072BC',
     'Loses Service' = '#F57F29',
     "L" = "white",
-    "E" = "#FDB71A"
+    "E" = "#FDB71A",
+    "Urban" = "#006848",
+    "Suburban" = "#D67619",
+    "Rural and DART" = "#4B2884",
+    "DART/Shuttle" = "#4B2884",
+    "ST" = "#264d5e"
   )
 
   # Plot points and labels using x-y coordinates from dotplot generated above
@@ -164,7 +184,7 @@ plot_productivity_distribution <- function(
       ggplot2::aes(
         x = xtext,
         y = ytext,
-        color = group
+        color = ifelse(selection_group == 'Selection', svc_family, 'System')
       ),
       size = point_size
     ) +
@@ -180,12 +200,7 @@ plot_productivity_distribution <- function(
       size = label_size
     ) +
     ggplot2::scale_x_continuous(breaks = seq(0, 100, 10), limits = c(0, NA)) +
-    ggplot2::scale_y_continuous(name = NULL, breaks = NULL) +
-    ggplot2::geom_vline(
-      data = selection,
-      ggplot2::aes(xintercept = value),
-      linetype = 'dashed'
-    ) +
+    ggplot2::scale_y_continuous(name = NULL, breaks = NULL, limits = c(0, NA)) +
     ggplot2::ggtitle(paste0(
       stringr::str_to_title(stringr::str_replace_all(activity_type, "_", " ")),
       ' Distribution'
@@ -197,12 +212,16 @@ plot_productivity_distribution <- function(
         unique(data2$service),
         ' (',
         unique(data2$day),
-        ')'
+        ') ',
+        svc_family
       )
     ) +
     ggplot2::scale_color_manual(
       values = color_legend,
       breaks = c(
+        'Urban',
+        'Suburban',
+        'Rural and DART',
         'Gains Service',
         'Maintains Service',
         'Loses Service',
@@ -210,6 +229,9 @@ plot_productivity_distribution <- function(
         'E'
       ),
       labels = c(
+        'Urban',
+        'Suburban',
+        'Rural and DART',
         'Gains Service',
         'Maintains Service',
         'Loses Service',
@@ -217,9 +239,27 @@ plot_productivity_distribution <- function(
         'Express'
       )
     ) +
+    ggplot2::geom_vline(
+      data = productivity_thresholds,
+      ggplot2::aes(xintercept = bottom_25_threshold_rides, color = svc_family),
+      linetype = 'dashed',
+      show.legend = FALSE
+    ) +
+    ggplot2::geom_vline(
+      data = productivity_thresholds,
+      ggplot2::aes(xintercept = median_threshold_rides, color = svc_family),
+      linetype = 'dashed',
+      show.legend = FALSE
+    ) +
+    ggplot2::geom_vline(
+      data = productivity_thresholds,
+      ggplot2::aes(xintercept = top_25_threshold_rides, color = svc_family),
+      linetype = 'dashed',
+      show.legend = FALSE
+    ) +
     ggplot2::annotate(
       "text",
-      x = percentiles["25%"],
+      x = productivity_thresholds$bottom_25_threshold_rides,
       y = Inf,
       label = "25th",
       vjust = 2,
@@ -228,7 +268,7 @@ plot_productivity_distribution <- function(
     ) +
     ggplot2::annotate(
       "text",
-      x = percentiles["50%"],
+      x = productivity_thresholds$median_threshold_rides,
       y = Inf,
       label = "50th",
       vjust = 2,
@@ -237,7 +277,7 @@ plot_productivity_distribution <- function(
     ) +
     ggplot2::annotate(
       "text",
-      x = percentiles["75%"],
+      x = productivity_thresholds$top_25_threshold_rides,
       y = Inf,
       label = "75th",
       vjust = 2,
