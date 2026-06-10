@@ -90,34 +90,55 @@ plot_productivity_distribution <- function(
       svc_family == .env$svc_family
     ))
 
-  productivity_thresholds <- get_productivity_thresholds(
-    service_change,
-    tbird_connection,
-    period_type,
-    sched_day_type_coded_num
-  ) |>
-    dplyr::filter(dplyr::if_any(
-      tidyselect::any_of(c('day_part_cd', 'productivity_period')),
-      ~ .x == period
-    )) |>
-    dplyr::filter(svc_family == .env$svc_family) |>
-    dplyr::mutate(
-      bottom_25_threshold = ifelse(
-        activity_type == 'rides_per_platform_hour',
-        bottom_25_threshold_rides,
-        bottom_25_threshold_miles
-      ),
-      median_threshold = ifelse(
-        activity_type == 'rides_per_platform_hour',
-        median_threshold_rides,
-        median_threshold_miles
-      ),
-      top_25_threshold = ifelse(
-        activity_type == 'rides_per_platform_hour',
-        top_25_threshold_rides,
-        top_25_threshold_miles
+  if (is.null(svc_family)) {
+    # Calculate percentiles based on whole network
+    percentiles <- quantile(trip_productivity$value, probs = c(0.25, 0.5, 0.75))
+
+    productivity_thresholds <- data.frame(
+      percentile = names(percentiles),
+      value = percentiles
+    ) |>
+      dplyr::mutate(
+        percentile = dplyr::recode_values(
+          percentile,
+          '25%' ~ 'bottom_25_threshold',
+          '50%' ~ 'median_threshold',
+          '75%' ~ 'top_25_threshold'
+        )
+      ) |>
+      tidyr::pivot_wider(names_from = percentile)
+  } else if (length(svc_family) == 1) {
+    productivity_thresholds <- get_productivity_thresholds(
+      service_change,
+      tbird_connection,
+      period_type,
+      sched_day_type_coded_num
+    ) |>
+      dplyr::filter(dplyr::if_any(
+        tidyselect::any_of(c('day_part_cd', 'productivity_period')),
+        ~ .x == period
+      )) |>
+      dplyr::filter(svc_family == .env$svc_family) |>
+      dplyr::mutate(
+        bottom_25_threshold = ifelse(
+          activity_type == 'rides_per_platform_hour',
+          bottom_25_threshold_rides,
+          bottom_25_threshold_miles
+        ),
+        median_threshold = ifelse(
+          activity_type == 'rides_per_platform_hour',
+          median_threshold_rides,
+          median_threshold_miles
+        ),
+        top_25_threshold = ifelse(
+          activity_type == 'rides_per_platform_hour',
+          top_25_threshold_rides,
+          top_25_threshold_miles
+        )
       )
-    )
+  } else {
+    cli::cli_abort('Please select one service family only.')
+  }
 
   # Set default binwidth values based on activity_type if not set
   if (is.null(binwidth)) {
@@ -166,11 +187,6 @@ plot_productivity_distribution <- function(
         binwidth_seq[which.min(abs(binwidth_seq - x))]
       })
     )
-
-  # Calculate percentiles based on whole network
-  percentiles <- quantile(data$value, probs = c(0.25, 0.5, 0.75))
-
-  selection <- data.frame(percentile = names(percentiles), value = percentiles)
 
   # Generate dotplot and save x-y coordinates
   # See https://stackoverflow.com/questions/44991607/how-do-i-label-the-dots-of-a-geom-dotplot-in-ggplot2
@@ -235,7 +251,7 @@ plot_productivity_distribution <- function(
     ggplot2::ggtitle(paste0(
       stringr::str_to_title(stringr::str_replace_all(activity_type, "_", " ")),
       ' Distribution, ',
-      svc_family
+      dplyr::coalesce(svc_family, 'System')
     )) +
     ggplot2::labs(
       y = "",
