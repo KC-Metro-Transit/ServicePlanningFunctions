@@ -5,6 +5,9 @@
 #' @param service_change Numeric. The three-digit identifier of the service change.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param svc_family Character. Service Family. Options are 'Urban', 'Suburban', and 'ST'.
+#' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.
+#' @param period_type Character. Level of time aggregation. Options are "day_part_cd", or "service_guidelines".
+#' @param period Character. Time Period. For "day_part_cd" period_type, options are AM, PM, MID, XEV, XNT, DAY. DAY represents All Day. For "service_guidelines" period_type, options are Peak, Off-Peak, Night.
 #' @param route Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes. If any of the route_gain, route_maintain, or route_lose paramenters are populated, this parameter is ignored.
 #' @param route_gain Numeric. Routes to color as gaining service. Overrides route parameter if used.
 #' @param route_maintain Numeric. Routes to color as maintaining service. Overrides route parameter if used.
@@ -43,6 +46,9 @@ plot_productivity_distribution <- function(
   service_change,
   tbird_connection,
   svc_family = NULL,
+  sched_day_type_coded_num = 0,
+  period_type = 'day_part_cd',
+  period = 'DAY',
   route = NULL,
   route_gain = NULL,
   route_maintain = NULL,
@@ -56,8 +62,8 @@ plot_productivity_distribution <- function(
   trip_productivity <- get_route_productivity(
     service_change,
     tbird_connection,
-    'day_part_cd',
-    0,
+    period_type,
+    sched_day_type_coded_num,
     FALSE
   ) |>
     tidyr::pivot_longer(
@@ -65,7 +71,11 @@ plot_productivity_distribution <- function(
       names_to = "variable",
       values_to = "value"
     ) |>
-    dplyr::filter(variable == activity_type & day_part_cd == 'DAY') |>
+    dplyr::filter(variable == activity_type) |>
+    dplyr::filter(dplyr::if_any(
+      tidyselect::any_of(c('day_part_cd', 'productivity_period')),
+      ~ .x == period
+    )) |>
     tidyr::unite(
       route,
       service_rte_num:express_local_cd,
@@ -83,10 +93,31 @@ plot_productivity_distribution <- function(
   productivity_thresholds <- get_productivity_thresholds(
     service_change,
     tbird_connection,
-    'day_part_cd',
-    0
+    period_type,
+    sched_day_type_coded_num
   ) |>
-    dplyr::filter(day_part_cd == 'DAY' & svc_family == .env$svc_family)
+    dplyr::filter(dplyr::if_any(
+      tidyselect::any_of(c('day_part_cd', 'productivity_period')),
+      ~ .x == period
+    )) |>
+    dplyr::filter(svc_family == .env$svc_family) |>
+    dplyr::mutate(
+      bottom_25_threshold = ifelse(
+        activity_type == 'rides_per_platform_hour',
+        bottom_25_threshold_rides,
+        bottom_25_threshold_miles
+      ),
+      median_threshold = ifelse(
+        activity_type == 'rides_per_platform_hour',
+        median_threshold_rides,
+        median_threshold_miles
+      ),
+      top_25_threshold = ifelse(
+        activity_type == 'rides_per_platform_hour',
+        top_25_threshold_rides,
+        top_25_threshold_miles
+      )
+    )
 
   # Set default binwidth values based on activity_type if not set
   if (is.null(binwidth)) {
@@ -184,7 +215,7 @@ plot_productivity_distribution <- function(
       ggplot2::aes(
         x = xtext,
         y = ytext,
-        color = ifelse(selection_group == 'Selection', svc_family, 'System')
+        color = group
       ),
       size = point_size
     ) +
@@ -203,7 +234,8 @@ plot_productivity_distribution <- function(
     ggplot2::scale_y_continuous(name = NULL, breaks = NULL, limits = c(0, NA)) +
     ggplot2::ggtitle(paste0(
       stringr::str_to_title(stringr::str_replace_all(activity_type, "_", " ")),
-      ' Distribution'
+      ' Distribution, ',
+      svc_family
     )) +
     ggplot2::labs(
       y = "",
@@ -212,8 +244,18 @@ plot_productivity_distribution <- function(
         unique(data2$service),
         ' (',
         unique(data2$day),
-        ') ',
-        svc_family
+        ' - ',
+        dplyr::recode_values(
+          period,
+          'AM' ~ 'AM Peak',
+          'MID' ~ 'Midday',
+          'PM' ~ 'PM Peak',
+          'XEV' ~ 'Evening',
+          'XNT' ~ 'Night',
+          'DAY' ~ 'All Day',
+          default = period
+        ),
+        ') '
       )
     ) +
     ggplot2::scale_color_manual(
@@ -241,25 +283,25 @@ plot_productivity_distribution <- function(
     ) +
     ggplot2::geom_vline(
       data = productivity_thresholds,
-      ggplot2::aes(xintercept = bottom_25_threshold_rides, color = svc_family),
+      ggplot2::aes(xintercept = bottom_25_threshold),
       linetype = 'dashed',
       show.legend = FALSE
     ) +
     ggplot2::geom_vline(
       data = productivity_thresholds,
-      ggplot2::aes(xintercept = median_threshold_rides, color = svc_family),
+      ggplot2::aes(xintercept = median_threshold),
       linetype = 'dashed',
       show.legend = FALSE
     ) +
     ggplot2::geom_vline(
       data = productivity_thresholds,
-      ggplot2::aes(xintercept = top_25_threshold_rides, color = svc_family),
+      ggplot2::aes(xintercept = top_25_threshold),
       linetype = 'dashed',
       show.legend = FALSE
     ) +
     ggplot2::annotate(
       "text",
-      x = productivity_thresholds$bottom_25_threshold_rides,
+      x = productivity_thresholds$bottom_25_threshold,
       y = Inf,
       label = "25th",
       vjust = 2,
@@ -268,7 +310,7 @@ plot_productivity_distribution <- function(
     ) +
     ggplot2::annotate(
       "text",
-      x = productivity_thresholds$median_threshold_rides,
+      x = productivity_thresholds$median_threshold,
       y = Inf,
       label = "50th",
       vjust = 2,
@@ -277,7 +319,7 @@ plot_productivity_distribution <- function(
     ) +
     ggplot2::annotate(
       "text",
-      x = productivity_thresholds$top_25_threshold_rides,
+      x = productivity_thresholds$top_25_threshold,
       y = Inf,
       label = "75th",
       vjust = 2,
