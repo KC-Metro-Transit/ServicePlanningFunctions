@@ -63,6 +63,8 @@ plot_productivity_distribution <- function(
   # Check if service change number and T-Bird connection is provided
   if (missing(service_change) | !is.numeric(service_change)) {
     cli::cli_abort(c("X" = "Please provide a service change."))
+  } else if (length(service_change) > 1) {
+    cli::cli_abort(c("X" = "Please provide only one service change."))
   } else if (missing(tbird_connection)) {
     cli::cli_abort(c(
       "X" = "Please provide a connection to T-Bird using connect_to_tbird()."
