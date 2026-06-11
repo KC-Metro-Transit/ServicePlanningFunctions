@@ -6,8 +6,8 @@
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param svc_family Character. Service Family. Options are 'Urban', 'Suburban', and 'ST'.
 #' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.
-#' @param period_type Character. Level of time aggregation. Options are "day_part_cd", or "service_guidelines".
-#' @param period Character. Time Period. For "day_part_cd" period_type, options are AM, PM, MID, XEV, XNT, DAY. DAY represents All Day. For "service_guidelines" period_type, options are Peak, Off-Peak, Night.
+#' @param period_type Character. Level of time aggregation. Options are "day_part_cd", or "service_guidelines". Defaults to 'day_part_cd'.
+#' @param period Character. Time Period. For "day_part_cd" period_type, options are AM, PM, MID, XEV, XNT, DAY. DAY represents All Day. For "service_guidelines" period_type, options are Peak, Off-Peak, Night. Defaults to 'DAY'.
 #' @param route Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes. If any of the route_gain, route_maintain, or route_lose paramenters are populated, this parameter is ignored.
 #' @param route_gain Numeric. Routes to color as gaining service. Overrides route parameter if used.
 #' @param route_maintain Numeric. Routes to color as maintaining service. Overrides route parameter if used.
@@ -59,6 +59,83 @@ plot_productivity_distribution <- function(
   label_size = 4,
   style_size = NULL
 ) {
+  # Check and validate arguments
+  # Check if service change number and T-Bird connection is provided
+  if (missing(service_change) | !is.numeric(service_change)) {
+    cli::cli_abort(c("X" = "Please provide a service change."))
+  } else if (missing(tbird_connection)) {
+    cli::cli_abort(c(
+      "X" = "Please provide a connection to T-Bird using connect_to_tbird()."
+    ))
+  }
+
+  # Display informational text based on service family slection
+  if (is.null(svc_family)) {
+    cli::cli_inform(c(
+      "i" = "Service Family not provided. Calculating productivity thresholds based on entire network."
+    ))
+  } else if (!is.null(svc_family)) {
+    cli::cli_inform(c(
+      "i" = "Calculating productivity thresholds for {svc_family} routes only."
+    ))
+  }
+
+  # Abort if period type and period are mismatch
+  if (
+    period_type == 'day_part_cd' &
+      !period %in% c('AM', 'MID', 'PM', 'XEV', 'XNT', 'DAY')
+  ) {
+    cli::cli_abort("{period} is not a valid Day Part Code period.")
+  } else if (
+    period_type == 'service_guidelines' &
+      !period %in% c('Peak', 'Off-Peak', 'Night')
+  ) {
+    cli::cli_abort("{period} is not a valid Service Guideline period.")
+  }
+
+  # Display information text based on route selection
+  if (is.null(c(route, route_gain, route_maintain, route_lose))) {
+    if (is.null(svc_family)) {
+      cli::cli_inform(c("i" = "Highlighting all routes."))
+    } else {
+      cli::cli_inform(c("i" = "Highlighting {svc_family} routes."))
+    }
+  } else if (
+    !is.null(route) & is.null(c(route_gain, route_maintain, route_lose))
+  ) {
+    route_list <- sort(unique(route))
+    cli::cli_inform(c("i" = "Highlighting following routes: {route}"))
+  } else if (
+    any(duplicated(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    )))
+  ) {
+    route_list <- sort(unique(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    )[duplicated(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    ))]))
+    cli::cli_warn(c(
+      "!" = "The following route(s) are referenced more than once in route_gain, route_maintain, and/or route_lose: {route_list}"
+    ))
+  } else if (!is.null(c(route_gain, route_maintain, route_lose))) {
+    route_list <- unique(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    ))
+    cli::cli_inform(c(
+      "i" = "Highlighting following routes by service level change: {route_list}"
+    ))
+  }
+
+  # Pull Productivity Measures
   trip_productivity <- get_route_productivity(
     service_change,
     tbird_connection,
@@ -72,10 +149,12 @@ plot_productivity_distribution <- function(
       values_to = "value"
     ) |>
     dplyr::filter(variable == activity_type) |>
+    # Filter by Period on either day_part_cd or productivity_period column (based on period_type selection)
     dplyr::filter(dplyr::if_any(
       tidyselect::any_of(c('day_part_cd', 'productivity_period')),
       ~ .x == period
     )) |>
+    # Combine Route Number and Express Local Code
     tidyr::unite(
       route,
       service_rte_num:express_local_cd,
@@ -90,6 +169,7 @@ plot_productivity_distribution <- function(
       svc_family == .env$svc_family
     ))
 
+  # Pull Productivity Thresholds
   if (is.null(svc_family)) {
     # Calculate percentiles based on whole network
     percentiles <- quantile(trip_productivity$value, probs = c(0.25, 0.5, 0.75))
@@ -152,15 +232,19 @@ plot_productivity_distribution <- function(
   binwidth_seq <- seq(0, 100, binwidth)
 
   data <- trip_productivity |>
+    # Create column for color assignment
     dplyr::mutate(
       group = factor(
         ifelse(
+          # If none of the route arguments are populated, assign value to color all routes.
           is.null(c(route_gain, route_maintain, route_lose, .env$route)),
           'Route',
+          # If route_gain, route_maintain, or route_lose are populated, assign service level change category accordingly.
           dplyr::case_when(
             service_rte_num %in% route_gain ~ 'Gains Service',
             service_rte_num %in% route_maintain ~ 'Maintains Service',
             service_rte_num %in% route_lose ~ 'Loses Service',
+            # If route_gain, route_maintain, and route_lose are not populated, assign value to color only routes from route parameter.
             service_rte_num %in%
               .env$route &
               is.null(c(route_gain, route_maintain, route_lose)) ~ 'Route',
@@ -175,6 +259,7 @@ plot_productivity_distribution <- function(
           'System'
         )
       ),
+      # Create column indicating whether a route is highlighed or not
       selection_group = ifelse(group == 'System', 'System', 'Selection'),
       binwidth = sapply(value, function(x) {
         binwidth_seq[which.min(ifelse(
@@ -205,6 +290,7 @@ plot_productivity_distribution <- function(
   built <- ggplot2::ggplot_build(dotplot)
   point.pos <- built$data[[1]]
 
+  # Order routes so that those with higher productivity metric values are on top of each bin and ignore service level change category
   data2 <- dplyr::arrange(data, binwidth2, selection_group, value)
 
   data2$ytext <- point.pos$stackpos * (0.07)
@@ -235,6 +321,7 @@ plot_productivity_distribution <- function(
       ),
       size = point_size
     ) +
+    # Color labels based on Express Local Code
     ggplot2::geom_text(
       ggplot2::aes(
         x = xtext,
@@ -246,13 +333,19 @@ plot_productivity_distribution <- function(
       ),
       size = label_size
     ) +
-    ggplot2::scale_x_continuous(breaks = seq(0, 100, 10), limits = c(0, NA)) +
+    ggplot2::scale_x_continuous(breaks = seq(0, 1000, 10), limits = c(0, NA)) +
     ggplot2::scale_y_continuous(name = NULL, breaks = NULL, limits = c(0, NA)) +
+    # Add title
     ggplot2::ggtitle(paste0(
-      stringr::str_to_title(stringr::str_replace_all(activity_type, "_", " ")),
+      dplyr::recode_values(
+        activity_type,
+        'rides_per_platform_hour' ~ 'Rides per Platform Hour',
+        'psngr_miles_per_platform_mile' ~ 'Passenger Miles per Platform Mile'
+      ),
       ' Distribution, ',
       dplyr::coalesce(svc_family, 'System')
     )) +
+    # Add subtitle
     ggplot2::labs(
       y = "",
       x = "",
@@ -297,6 +390,7 @@ plot_productivity_distribution <- function(
         'Express'
       )
     ) +
+    # Draw productivity threshold lines
     ggplot2::geom_vline(
       data = productivity_thresholds,
       ggplot2::aes(xintercept = bottom_25_threshold),
@@ -342,6 +436,7 @@ plot_productivity_distribution <- function(
       hjust = -0.25,
       size = label_size
     ) +
+    # Add Caption
     ggplot2::labs(
       caption = paste0(
         'Plot showing ',

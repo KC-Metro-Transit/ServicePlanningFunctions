@@ -7,6 +7,10 @@
 plot_productivity_distribution(
   service_change,
   tbird_connection,
+  svc_family = NULL,
+  sched_day_type_coded_num = 0,
+  period_type = "day_part_cd",
+  period = "DAY",
   route = NULL,
   route_gain = NULL,
   route_maintain = NULL,
@@ -22,6 +26,14 @@ plot_productivity_distribution(
 \item{service_change}{Numeric. The three-digit identifier of the service change.}
 
 \item{tbird_connection}{The connection object created by connect_to_tbird()}
+
+\item{svc_family}{Character. Service Family. Options are 'Urban', 'Suburban', and 'ST'.}
+
+\item{sched_day_type_coded_num}{Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.}
+
+\item{period_type}{Character. Level of time aggregation. Options are "day_part_cd", or "service_guidelines". Defaults to 'day_part_cd'.}
+
+\item{period}{Character. Time Period. For "day_part_cd" period_type, options are AM, PM, MID, XEV, XNT, DAY. DAY represents All Day. For "service_guidelines" period_type, options are Peak, Off-Peak, Night. Defaults to 'DAY'.}
 
 \item{route}{Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes. If any of the route_gain, route_maintain, or route_lose paramenters are populated, this parameter is ignored.}
 
