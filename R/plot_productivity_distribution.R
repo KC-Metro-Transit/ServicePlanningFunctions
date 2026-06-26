@@ -1,0 +1,453 @@
+#' ggplot engine for route-level productivity distribution plots
+#'
+#' @description Generate a distribution dotplot of route productivity metrics from get_route_productivity(). Rides per Platform Hour or Passenger Miles per Platform Mile.
+#'
+#' @param service_change Numeric. The three-digit identifier of the service change.
+#' @param tbird_connection The connection object created by connect_to_tbird()
+#' @param svc_family Character. Service Family. Options are 'Urban', 'Suburban', and 'ST'.
+#' @param sched_day_type_coded_num Numeric. Day of the week. 0 - Weekday, 1 - Saturday, 2 - Sunday.
+#' @param period_type Character. Level of time aggregation. Options are "day_part_cd", or "service_guidelines". Defaults to 'day_part_cd'.
+#' @param period Character. Time Period. For "day_part_cd" period_type, options are AM, PM, MID, XEV, XNT, DAY. DAY represents All Day. For "service_guidelines" period_type, options are Peak, Off-Peak, Night. Defaults to 'DAY'.
+#' @param route Numeric. The route identifiers of interest to highlight and label. Values to be treated as characters to allow for non-numeric route identifiers. Can accept multiple values as a vector. Defaults to show all routes. If any of the route_gain, route_maintain, or route_lose paramenters are populated, this parameter is ignored.
+#' @param route_gain Numeric. Routes to color as gaining service. Overrides route parameter if used.
+#' @param route_maintain Numeric. Routes to color as maintaining service. Overrides route parameter if used.
+#' @param route_lose Numeric. Routes to color as losing service. Overrides route parameter if used.
+#' @param activity_type Character. rides_per_platform_hour - Rides per Platform Hour, psngr_miles_per_platform_mile - Passenger Miles per Platform Mile
+#' @param binwidth Numeric. Specifies bin width. Decrease if dots are too close to each other vertically. Increase if dots are too close to each other horizontally. Defaults to 2 for rides per platform hour and 1 for passenger miles per platform miles.
+#' @param point_size Numeric. The diameter of the dots. Adjust so that dots do not overlap one another. Interacts with binwidth.
+#' @param label_size Numeric. The font size of the dot labels. Adjust so that labels fit within each dot.
+#' @param style_size Numeric. Specifies the sizing style to use with style_kcm(). Defaults to default size. "large" to increase sizing style for pdf/png/jpeg/markdown exports.
+#'
+#' @returns A ggplot2 plot showing distribution dotplot of route productivity metrics.
+#'
+#' @export
+#' @examples
+#' con <- connect_to_tbird()
+#'
+#' # Generate Rides per Platform Hour distribution dotplot for Fall 2025 Service Change
+#' plot_productivity_distribution(service_change = 253, tbird_connection = con)
+#'
+#' # Highlight Routes based on Service Gain/Loss
+#' plot_productivity_distribution(service_change = 253, tbird_connection = con, route_gain = c(8), route_maintain = c(1, 2), route_lose = c(107, 673))
+#'
+#' # Generate Passenger Miles per Platform Mile distribution dotplot for Fall 2025 Service Change highlighting RapidRide routes only.
+#' # Sizing parameters formatted for png download size.
+#' plot_productivity_distribution(service_change = 253,
+#'  tbird_connection = con,
+#'  route = c(671, 672, 673, 674, 675, 676, 677, 678),
+#'  activity_type = 'psngr_miles_per_platform_mile',
+#'  binwidth = 1,
+#'  point_size = 6.5,
+#'  label_size = 8,
+#'  style_size = 'large')
+#'
+#' ggplot2::ggsave("RapidRide Passenger Miles per Platform Mile.png", width = 12.5, height = 6.9, units = "in")
+plot_productivity_distribution <- function(
+  service_change,
+  tbird_connection,
+  svc_family = NULL,
+  sched_day_type_coded_num = 0,
+  period_type = 'day_part_cd',
+  period = 'DAY',
+  route = NULL,
+  route_gain = NULL,
+  route_maintain = NULL,
+  route_lose = NULL,
+  activity_type = 'rides_per_platform_hour',
+  binwidth = NULL,
+  point_size = 20,
+  label_size = 4,
+  style_size = NULL
+) {
+  # Check and validate arguments
+  # Check if service change number and T-Bird connection is provided
+  if (missing(service_change) | !is.numeric(service_change)) {
+    cli::cli_abort(c("X" = "Please provide a service change."))
+  } else if (length(service_change) > 1) {
+    cli::cli_abort(c("X" = "Please provide only one service change."))
+  } else if (missing(tbird_connection)) {
+    cli::cli_abort(c(
+      "X" = "Please provide a connection to T-Bird using connect_to_tbird()."
+    ))
+  }
+
+  # Display informational text based on service family slection
+  if (is.null(svc_family)) {
+    cli::cli_inform(c(
+      "i" = "Service Family not provided. Calculating productivity thresholds based on entire network."
+    ))
+  } else if (!is.null(svc_family)) {
+    cli::cli_inform(c(
+      "i" = "Calculating productivity thresholds for {svc_family} routes only."
+    ))
+  }
+
+  # Abort if period type and period are mismatch
+  if (
+    period_type == 'day_part_cd' &
+      !period %in% c('AM', 'MID', 'PM', 'XEV', 'XNT', 'DAY')
+  ) {
+    cli::cli_abort("{period} is not a valid Day Part Code period.")
+  } else if (
+    period_type == 'service_guidelines' &
+      !period %in% c('Peak', 'Off-Peak', 'Night')
+  ) {
+    cli::cli_abort("{period} is not a valid Service Guideline period.")
+  }
+
+  # Display information text based on route selection
+  if (is.null(c(route, route_gain, route_maintain, route_lose))) {
+    if (is.null(svc_family)) {
+      cli::cli_inform(c("i" = "Highlighting all routes."))
+    } else {
+      cli::cli_inform(c("i" = "Highlighting {svc_family} routes."))
+    }
+  } else if (
+    !is.null(route) & is.null(c(route_gain, route_maintain, route_lose))
+  ) {
+    route_list <- sort(unique(route))
+    cli::cli_inform(c("i" = "Highlighting following routes: {route}"))
+  } else if (
+    any(duplicated(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    )))
+  ) {
+    route_list <- sort(unique(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    )[duplicated(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    ))]))
+    cli::cli_warn(c(
+      "!" = "The following route(s) are referenced more than once in route_gain, route_maintain, and/or route_lose: {route_list}"
+    ))
+  } else if (!is.null(c(route_gain, route_maintain, route_lose))) {
+    route_list <- unique(c(
+      unique(route_gain),
+      unique(route_maintain),
+      unique(route_lose)
+    ))
+    cli::cli_inform(c(
+      "i" = "Highlighting following routes by service level change: {route_list}"
+    ))
+  }
+
+  # Pull Productivity Measures
+  trip_productivity <- get_route_productivity(
+    service_change,
+    tbird_connection,
+    period_type,
+    sched_day_type_coded_num,
+    FALSE
+  ) |>
+    tidyr::pivot_longer(
+      cols = c(rides_per_platform_hour:psngr_miles_per_platform_mile),
+      names_to = "variable",
+      values_to = "value"
+    ) |>
+    dplyr::filter(variable == activity_type) |>
+    # Filter by Period on either day_part_cd or productivity_period column (based on period_type selection)
+    dplyr::filter(dplyr::if_any(
+      tidyselect::any_of(c('day_part_cd', 'productivity_period')),
+      ~ .x == period
+    )) |>
+    # Combine Route Number and Express Local Code
+    tidyr::unite(
+      route,
+      service_rte_num:express_local_cd,
+      sep = "",
+      remove = FALSE
+    ) |>
+    # Exclude school routes and routes that are missing ridership data (DART Routes)
+    dplyr::filter(ons > 0 & svc_family != 'Other') |>
+    dplyr::filter(ifelse(
+      is.null(.env$svc_family),
+      TRUE,
+      svc_family == .env$svc_family
+    ))
+
+  # Pull Productivity Thresholds
+  if (is.null(svc_family)) {
+    # Calculate percentiles based on whole network
+    percentiles <- quantile(trip_productivity$value, probs = c(0.25, 0.5, 0.75))
+
+    productivity_thresholds <- data.frame(
+      percentile = names(percentiles),
+      value = percentiles
+    ) |>
+      dplyr::mutate(
+        percentile = dplyr::recode_values(
+          percentile,
+          '25%' ~ 'bottom_25_threshold',
+          '50%' ~ 'median_threshold',
+          '75%' ~ 'top_25_threshold'
+        )
+      ) |>
+      tidyr::pivot_wider(names_from = percentile)
+  } else if (length(svc_family) == 1) {
+    productivity_thresholds <- get_productivity_thresholds(
+      service_change,
+      tbird_connection,
+      period_type,
+      sched_day_type_coded_num
+    ) |>
+      dplyr::filter(dplyr::if_any(
+        tidyselect::any_of(c('day_part_cd', 'productivity_period')),
+        ~ .x == period
+      )) |>
+      dplyr::filter(svc_family == .env$svc_family) |>
+      dplyr::mutate(
+        bottom_25_threshold = ifelse(
+          activity_type == 'rides_per_platform_hour',
+          bottom_25_threshold_rides,
+          bottom_25_threshold_miles
+        ),
+        median_threshold = ifelse(
+          activity_type == 'rides_per_platform_hour',
+          median_threshold_rides,
+          median_threshold_miles
+        ),
+        top_25_threshold = ifelse(
+          activity_type == 'rides_per_platform_hour',
+          top_25_threshold_rides,
+          top_25_threshold_miles
+        )
+      )
+  } else {
+    cli::cli_abort('Please select one service family only.')
+  }
+
+  # Set default binwidth values based on activity_type if not set
+  if (is.null(binwidth)) {
+    if (activity_type == 'rides_per_platform_hour') {
+      binwidth <- 2
+    } else if (activity_type == 'psngr_miles_per_platform_mile') {
+      binwidth <- 1
+    }
+  }
+
+  binwidth_seq <- seq(0, 100, binwidth)
+
+  data <- trip_productivity |>
+    # Create column for color assignment
+    dplyr::mutate(
+      group = factor(
+        ifelse(
+          # If none of the route arguments are populated, assign value to color all routes.
+          is.null(c(route_gain, route_maintain, route_lose, .env$route)),
+          'Route',
+          # If route_gain, route_maintain, or route_lose are populated, assign service level change category accordingly.
+          dplyr::case_when(
+            service_rte_num %in% route_gain ~ 'Gains Service',
+            service_rte_num %in% route_maintain ~ 'Maintains Service',
+            service_rte_num %in% route_lose ~ 'Loses Service',
+            # If route_gain, route_maintain, and route_lose are not populated, assign value to color only routes from route parameter.
+            service_rte_num %in%
+              .env$route &
+              is.null(c(route_gain, route_maintain, route_lose)) ~ 'Route',
+            .default = 'System'
+          )
+        ),
+        levels = c(
+          'Route',
+          'Gains Service',
+          'Maintains Service',
+          'Loses Service',
+          'System'
+        )
+      ),
+      # Create column indicating whether a route is highlighed or not
+      selection_group = ifelse(group == 'System', 'System', 'Selection'),
+      binwidth = sapply(value, function(x) {
+        binwidth_seq[which.min(ifelse(
+          binwidth_seq - x < 0,
+          NA,
+          binwidth_seq - x
+        ))]
+      }),
+      binwidth2 = sapply(value, function(x) {
+        binwidth_seq[which.min(abs(binwidth_seq - x))]
+      })
+    )
+
+  # Generate dotplot and save x-y coordinates
+  # See https://stackoverflow.com/questions/44991607/how-do-i-label-the-dots-of-a-geom-dotplot-in-ggplot2
+  dotplot <- ggplot2::ggplot(
+    data,
+    ggplot2::aes(x = value, fill = selection_group)
+  ) +
+    ggplot2::geom_dotplot(
+      method = 'histodot',
+      binwidth = binwidth,
+      binpositions = 'all',
+      stackgroups = TRUE,
+      color = NA
+    )
+
+  built <- ggplot2::ggplot_build(dotplot)
+  point.pos <- built$data[[1]]
+
+  # Order routes so that those with higher productivity metric values are on top of each bin and ignore service level change category
+  data2 <- dplyr::arrange(data, binwidth2, selection_group, value)
+
+  data2$ytext <- point.pos$stackpos * (0.07)
+  data2$xtext <- point.pos$x
+
+  color_legend <- c(
+    'Route' = '#0072BC',
+    'System' = '#EFEFEF',
+    'Gains Service' = '#006633',
+    'Maintains Service' = '#0072BC',
+    'Loses Service' = '#F57F29',
+    "L" = "white",
+    "E" = "#FDB71A",
+    "Urban" = "#006848",
+    "Suburban" = "#D67619",
+    "Rural and DART" = "#4B2884",
+    "DART/Shuttle" = "#4B2884",
+    "ST" = "#264d5e"
+  )
+
+  # Plot points and labels using x-y coordinates from dotplot generated above
+  plt <- ggplot2::ggplot(data2, ggplot2::aes(x = value)) +
+    ggplot2::geom_point(
+      ggplot2::aes(
+        x = xtext,
+        y = ytext,
+        color = group
+      ),
+      size = point_size
+    ) +
+    # Color labels based on Express Local Code
+    ggplot2::geom_text(
+      ggplot2::aes(
+        x = xtext,
+        y = ytext,
+        label = ifelse(group != 'System', service_rte_num, ''),
+        family = 'inter',
+        fontface = 'bold',
+        color = express_local_cd
+      ),
+      size = label_size
+    ) +
+    ggplot2::scale_x_continuous(breaks = seq(0, 1000, 10), limits = c(0, NA)) +
+    ggplot2::scale_y_continuous(name = NULL, breaks = NULL, limits = c(0, NA)) +
+    # Add title
+    ggplot2::ggtitle(paste0(
+      dplyr::recode_values(
+        activity_type,
+        'rides_per_platform_hour' ~ 'Rides per Platform Hour',
+        'psngr_miles_per_platform_mile' ~ 'Passenger Miles per Platform Mile'
+      ),
+      ' Distribution, ',
+      dplyr::coalesce(svc_family, 'System')
+    )) +
+    # Add subtitle
+    ggplot2::labs(
+      y = "",
+      x = "",
+      subtitle = paste0(
+        unique(data2$service),
+        ' (',
+        unique(data2$day),
+        ' - ',
+        dplyr::recode_values(
+          period,
+          'AM' ~ 'AM Peak',
+          'MID' ~ 'Midday',
+          'PM' ~ 'PM Peak',
+          'XEV' ~ 'Evening',
+          'XNT' ~ 'Night',
+          'DAY' ~ 'All Day',
+          default = period
+        ),
+        ') '
+      )
+    ) +
+    ggplot2::scale_color_manual(
+      values = color_legend,
+      breaks = c(
+        'Urban',
+        'Suburban',
+        'Rural and DART',
+        'Gains Service',
+        'Maintains Service',
+        'Loses Service',
+        'L',
+        'E'
+      ),
+      labels = c(
+        'Urban',
+        'Suburban',
+        'Rural and DART',
+        'Gains Service',
+        'Maintains Service',
+        'Loses Service',
+        'Local',
+        'Express'
+      )
+    ) +
+    # Draw productivity threshold lines
+    ggplot2::geom_vline(
+      data = productivity_thresholds,
+      ggplot2::aes(xintercept = bottom_25_threshold),
+      linetype = 'dashed',
+      show.legend = FALSE
+    ) +
+    ggplot2::geom_vline(
+      data = productivity_thresholds,
+      ggplot2::aes(xintercept = median_threshold),
+      linetype = 'dashed',
+      show.legend = FALSE
+    ) +
+    ggplot2::geom_vline(
+      data = productivity_thresholds,
+      ggplot2::aes(xintercept = top_25_threshold),
+      linetype = 'dashed',
+      show.legend = FALSE
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = productivity_thresholds$bottom_25_threshold,
+      y = Inf,
+      label = "25th",
+      vjust = 2,
+      hjust = -0.25,
+      size = label_size
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = productivity_thresholds$median_threshold,
+      y = Inf,
+      label = "50th",
+      vjust = 2,
+      hjust = -0.25,
+      size = label_size
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = productivity_thresholds$top_25_threshold,
+      y = Inf,
+      label = "75th",
+      vjust = 2,
+      hjust = -0.25,
+      size = label_size
+    ) +
+    # Add Caption
+    ggplot2::labs(
+      caption = paste0(
+        'Plot showing ',
+        length(unique(trip_productivity$route)),
+        ' routes'
+      )
+    ) +
+    style_kcm(textsize = style_size) +
+    ggplot2::theme(legend.key = ggplot2::element_rect(fill = "#EFEFEF"))
+
+  plt
+}

@@ -76,7 +76,6 @@ SELECT [SERVICE_CHANGE_NUM]
       too_few = "align_start"
     ) %>%
     dplyr::mutate(hour = as.integer(hour)) %>%
-    dplyr::filter(route != 907) %>%
     # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
     dplyr::mutate(
       yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits

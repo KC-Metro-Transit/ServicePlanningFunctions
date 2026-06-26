@@ -59,10 +59,9 @@ get_productivity_thresholds <- function(
 
   # if you are getting data for the current service change or if you want data to be grouped by day part, you need to use dp.vw_trip_summary.
   if (
-    (period_type == "service_guidelines" &
+    period_type == "service_guidelines" &
       current_service_change %in% service_change &
-      length(service_change) == 1) |
-      period_type == "day_part_cd"
+      length(service_change) == 1
   ) {
     trip_productivity <- DBI::dbGetQuery(
       tbird_connection,
@@ -116,7 +115,7 @@ get_productivity_thresholds <- function(
       dplyr::group_by(
         service_change_num,
         service_rte_num,
-        #express_local_cd,
+        express_local_cd,
         sched_day_type_coded_num,
         svc_family,
         productivity_period,
@@ -303,7 +302,7 @@ get_productivity_thresholds <- function(
       dplyr::group_by(
         service_change_num,
         service_rte_num,
-        #express_local_cd,
+        express_local_cd,
         sched_day_type_coded_num,
         svc_family,
         productivity_period,
@@ -337,6 +336,42 @@ get_productivity_thresholds <- function(
           TRUE ~ productivity_period
         )
       )
+  } else if (period_type == "day_part_cd") {
+    trip_productivity <- DBI::dbGetQuery(
+      tbird_connection,
+      glue::glue_sql(
+        "SELECT [SERVICE_CHANGE_NUM] 
+                                ,SCHED_DAY_TYPE_CODED_NUM
+                                ,[DAY_PART_CD]
+                                ,[SERVICE_RTE_NUM]
+                                ,[EXPRESS_LOCAL_CD]
+                                , max(sched_start_time_mnts_after_midnt) as last_trip
+                                , min(sched_start_time_mnts_after_midnt) as first_trip
+                                ,sum(trip_miles) as platform_miles
+                                ,sum(platform_hours) as platform_hours
+                                ,sum([AVG_PSNGR_MILES]) as avg_psngr_miles
+                                ,count(trip_id) as trip_count
+                                ,sum([AVG_PSNGR_BOARDINGS]) as ons
+                                FROM [DP].[VW_TRIP_SUMMARY]
+                                 WHERE [SERVICE_CHANGE_NUM] IN ({vals1*})
+                                  AND SCHED_DAY_TYPE_CODED_NUM IN ({vals2*})
+                                  GROUP BY [SERVICE_CHANGE_NUM], 
+                                  [SERVICE_RTE_NUM],  
+                                   [EXPRESS_LOCAL_CD],
+                                  [SCHED_DAY_TYPE_CODED_NUM], [DAY_PART_CD]",
+        vals1 = service_change,
+        vals2 = sched_day_type_coded_num,
+        .con = tbird_connection
+      )
+    ) %>%
+      dplyr::mutate(dplyr::across(platform_miles:ons, ~ as.numeric(.))) %>%
+      janitor::clean_names() %>%
+      dplyr::arrange(
+        service_change_num,
+        service_rte_num,
+        sched_day_type_coded_num
+      ) |>
+      dplyr::left_join(route_classification)
   }
 
   if (period_type == "day_part_cd") {
@@ -354,14 +389,14 @@ get_productivity_thresholds <- function(
         express_local_cd,
         sched_day_type_coded_num,
         svc_family,
-        day_part_cd,
-        trip_count
+        day_part_cd
       ) %>%
       dplyr::summarise(
         ons = sum(ons, na.rm = T),
         platform_miles = sum(platform_miles, na.rm = T),
         avg_psngr_miles = sum(avg_psngr_miles, na.rm = T),
-        platform_hours = sum(platform_hours, na.rm = T)
+        platform_hours = sum(platform_hours, na.rm = T),
+        trip_count = sum(trip_count, na.rm = T)
       ) %>%
       dplyr::mutate(
         rides_per_platform_hour = (ons / platform_hours),
