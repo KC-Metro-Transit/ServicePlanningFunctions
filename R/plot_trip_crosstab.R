@@ -8,8 +8,13 @@
 #' @param day Character. Day of the week. Weekday, Saturday, Sunday.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param x_axis Character. Grouping variable based on columns found in output from get_trip_ridership(). day, period, hour, route, route_name.
-#' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#'
+#' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load,
+#' weekly_trips - Total of  Weekly Trips on selected routes, day_type_trips - Count of Trips by day type on selected routes
+#' @param split_by_day_type T/F Do you want to show the plots by day side-by-side? Defaults to false
+#' @param color_palette Character.A character string indicating the color map option to use. Eight options are available: "magma", "inferno", "plasma",
+#' "viridis", "cividis", "rocket" , "mako"  or "turbo" .
+#'  @param color_palette_direction Numeric. 	Sets the order of colors in the scale. If 1, the default,
+#' colors are as output by viridis_pal. If -1, the order of colors is reversed.
 #' @returns ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
 #'
 #' @export
@@ -21,7 +26,10 @@ plot_trip_crosstab <- function(
   day = c("Weekday", "Saturday", "Sunday"),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis = 'period',
-  activity_type = 'ons'
+  activity_type = 'ons',
+  split_by_day_type = FALSE,
+  color_palette = "viridis",
+  color_palette_direction = 1
 ) {
   data <- dataframe %>%
     dplyr::filter(
@@ -30,37 +38,85 @@ plot_trip_crosstab <- function(
       service_change_num %in% .env$service_change_num,
       route %in% .env$route
     )
-
-  plot_data <- data %>%
-    dplyr::group_by_at(dplyr::vars(service_change_num, service, x_axis)) %>%
-    dplyr::select(
-      service_change_num,
-      service,
-      'axis' = x_axis,
-      ons:avg_load
-    ) %>%
-    dplyr::summarise(
-      dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
-      dplyr::across(avg_load, ~ mean(.x, na.rm = TRUE)),
-      .groups = 'drop'
-    ) %>%
-    tidyr::pivot_longer(
-      cols = ons:avg_load,
-      names_to = 'variable',
-      values_to = 'value'
-    ) %>%
-    dplyr::filter(
-      variable == activity_type,
-    ) %>%
-    dplyr::mutate(
-      variable = dplyr::case_match(
-        variable,
-        'ons' ~ 'Average Daily Boardings',
-        'offs' ~ 'Average Daily Alightings',
-        'avg_load' ~ 'Average Max Load',
-        .default = variable
+  if (split_by_day_type == FALSE) {
+    plot_data <- data %>%
+      dplyr::group_by_at(dplyr::vars(service_change_num, service, x_axis)) %>%
+      dplyr::select(
+        service_change_num,
+        service,
+        'axis' = x_axis,
+        ons:avg_load,
+        weekly_trips,
+        day_type_trips
+      ) %>%
+      dplyr::summarise(
+        dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
+        dplyr::across(avg_load, ~ mean(.x, na.rm = TRUE)),
+        dplyr::across(weekly_trips:day_type_trips, ~ sum(.x, na.rm = TRUE)),
+        .groups = 'drop'
+      ) %>%
+      tidyr::pivot_longer(
+        cols = ons:day_type_trips,
+        names_to = 'variable',
+        values_to = 'value'
+      ) %>%
+      dplyr::filter(
+        variable == activity_type,
+      ) %>%
+      dplyr::mutate(
+        variable = dplyr::case_match(
+          variable,
+          'ons' ~ 'Average Daily Boardings',
+          'offs' ~ 'Average Daily Alightings',
+          'avg_load' ~ 'Average Max Load',
+          'weekly_trips' ~ 'Total Weekly Trips',
+          'day_type_trips' ~ 'Total Trips Per Day',
+          .default = variable
+        )
       )
-    )
+  } else {
+    plot_data <- data %>%
+      dplyr::group_by_at(dplyr::vars(
+        service_change_num,
+        service,
+        x_axis,
+        day
+      )) %>%
+      dplyr::select(
+        service_change_num,
+        service,
+        'axis' = x_axis,
+        day,
+        ons:avg_load,
+        weekly_trips,
+        day_type_trips
+      ) %>%
+      dplyr::summarise(
+        dplyr::across(ons:offs, ~ sum(.x, na.rm = TRUE)),
+        dplyr::across(avg_load, ~ mean(.x, na.rm = TRUE)),
+        dplyr::across(weekly_trips:day_type_trips, ~ sum(.x, na.rm = TRUE)),
+        .groups = 'drop'
+      ) %>%
+      tidyr::pivot_longer(
+        cols = ons:day_type_trips,
+        names_to = 'variable',
+        values_to = 'value'
+      ) %>%
+      dplyr::filter(
+        variable == activity_type,
+      ) %>%
+      dplyr::mutate(
+        variable = dplyr::case_match(
+          variable,
+          'ons' ~ 'Average Daily Boardings',
+          'offs' ~ 'Average Daily Alightings',
+          'avg_load' ~ 'Average Max Load',
+          'weekly_trips' ~ 'Total Weekly Trips',
+          'day_type_trips' ~ 'Total Trips Per Day',
+          .default = variable
+        )
+      )
+  }
 
   route_title <- paste0(sort(unique(data$route)), collapse = ", ")
 
@@ -130,32 +186,72 @@ plot_trip_crosstab <- function(
       )
     )
   }
-
-  plt <- plt +
-    ggplot2::geom_col(position = ggplot2::position_dodge()) +
-    viridis::scale_fill_viridis(discrete = TRUE, name = 'Legend') +
-    ggplot2::ggtitle(paste0(
-      var_title,
-      ' by ',
-      axis_title,
-      ', ',
-      'Trip Ridership'
-    )) +
-    ggplot2::labs(
-      subtitle = paste(day_title, period_title, sep = ", "),
-      caption = stringr::str_wrap(
-        paste(
-          "Plot shows data for trips on route(s)",
-          route_title,
-          sep = " "
-        ),
-        width = 100
-      )
-    ) +
-    ggplot2::scale_x_discrete(
-      labels = scales::label_wrap(10),
-      guide = ggplot2::guide_axis(angle = 45)
-    ) +
-    ServicePlanningFunctions::style_kcm()
-  plt
+  if (split_by_day_type == FALSE) {
+    plt <- plt +
+      ggplot2::geom_col(position = ggplot2::position_dodge()) +
+      viridis::scale_fill_viridis(
+        discrete = TRUE,
+        name = 'Legend',
+        option = color_palette,
+        direction = color_palette_direction
+      ) +
+      ggplot2::ggtitle(paste0(
+        var_title,
+        ' by ',
+        axis_title,
+        ', ',
+        'Trip Ridership'
+      )) +
+      ggplot2::labs(
+        subtitle = paste(day_title, period_title, sep = ", "),
+        caption = stringr::str_wrap(
+          paste(
+            "Plot shows data for trips on route(s)",
+            route_title,
+            sep = " "
+          ),
+          width = 100
+        )
+      ) +
+      ggplot2::scale_x_discrete(
+        labels = scales::label_wrap(10),
+        guide = ggplot2::guide_axis(angle = 45)
+      ) +
+      ServicePlanningFunctions::style_kcm()
+    plt
+  } else {
+    plt <- plt +
+      ggplot2::geom_col(position = ggplot2::position_dodge()) +
+      viridis::scale_fill_viridis(
+        discrete = TRUE,
+        name = 'Legend',
+        option = color_palette,
+        direction = color_palette_direction
+      ) +
+      ggplot2::facet_wrap(ggplot2::vars(day)) +
+      ggplot2::ggtitle(paste0(
+        var_title,
+        ' by ',
+        axis_title,
+        ', ',
+        'Trip Ridership'
+      )) +
+      ggplot2::labs(
+        subtitle = paste(day_title, period_title, sep = ", "),
+        caption = stringr::str_wrap(
+          paste(
+            "Plot shows data for trips on route(s)",
+            route_title,
+            sep = " "
+          ),
+          width = 100
+        )
+      ) +
+      ggplot2::scale_x_discrete(
+        labels = scales::label_wrap(10),
+        guide = ggplot2::guide_axis(angle = 45)
+      ) +
+      ServicePlanningFunctions::style_kcm()
+    plt
+  }
 }

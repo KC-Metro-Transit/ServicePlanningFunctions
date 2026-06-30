@@ -28,7 +28,8 @@
 #' plot_productivity_distribution(service_change = 253, tbird_connection = con)
 #'
 #' # Highlight Routes based on Service Gain/Loss
-#' plot_productivity_distribution(service_change = 253, tbird_connection = con, route_gain = c(8), route_maintain = c(1, 2), route_lose = c(107, 673))
+#' plot_productivity_distribution(service_change = 253, tbird_connection = con, route_gain = c(8),
+#'  route_maintain = c(1, 2), route_lose = c(107, 673))
 #'
 #' # Generate Passenger Miles per Platform Mile distribution dotplot for Fall 2025 Service Change highlighting RapidRide routes only.
 #' # Sizing parameters formatted for png download size.

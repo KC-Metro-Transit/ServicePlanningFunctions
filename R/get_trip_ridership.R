@@ -75,7 +75,16 @@ SELECT [SERVICE_CHANGE_NUM]
       names = c("hour", "min"),
       too_few = "align_start"
     ) %>%
-    dplyr::mutate(hour = as.integer(hour)) %>%
+    dplyr::mutate(
+      hour = as.integer(hour),
+      weekly_trips = dplyr::case_when(
+        day == 'Weekday' ~ 5,
+        day == 'Saturday' ~ 1,
+        day == 'Sunday' ~ 1,
+        TRUE ~ 0
+      ),
+      day_type_trips = 1
+    ) %>%
     # Convert Service Change Num to Service Change Name (Spring/Summer/Fall YYYY)
     dplyr::mutate(
       yr = stringr::str_replace(service_change_num, "[1-3]$", ""), # Extract Year Digits
