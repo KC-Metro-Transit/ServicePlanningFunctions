@@ -57,8 +57,8 @@ style_kcm_colors_default <- function(color_palette_direction = 0) {
 
   if (color_palette_direction == 0) {
     list(
-      ggplot2::scale_color_manual(values = kcm_colors_list),
-      ggplot2::scale_fill_manual(values = kcm_colors_list)
+      ggplot2::scale_color_manual(values = kcm_colors_list_0),
+      ggplot2::scale_fill_manual(values = kcm_colors_list_0)
     )
   } else if (color_palette_direction == 1) {
     list(
@@ -82,8 +82,8 @@ style_kcm_colors_default <- function(color_palette_direction = 0) {
     )
   } else {
     list(
-      ggplot2::scale_color_manual(values = kcm_colors_list),
-      ggplot2::scale_fill_manual(values = kcm_colors_list)
+      ggplot2::scale_color_manual(values = kcm_colors_list_0),
+      ggplot2::scale_fill_manual(values = kcm_colors_list_0)
     )
   }
 }
