@@ -35,10 +35,12 @@ weekly_trips - Total of  Weekly Trips on selected routes, day_type_trips - Count
 
 \item{split_by_day_type}{T/F Do you want to show the plots by day side-by-side? Defaults to false}
 
-\item{color_palette}{Character.A character string indicating the color map option to use. Eight options are available: "magma", "inferno", "plasma",
-"viridis", "cividis", "rocket" , "mako"  or "turbo" .
-@param color_palette_direction Numeric.     Sets the order of colors in the scale. If 1, the default,
-colors are as output by viridis_pal. If -1, the order of colors is reversed.}
+\item{color_palette}{Character.A character string indicating the color map option to use. Nine options are available: "kcm", "magma", "inferno", "plasma",
+"viridis", "cividis", "rocket" , "mako"  or "turbo" .}
+
+\item{color_palette_direction}{Numeric.     Sets the order of colors in the scale. If 1, the default,
+colors are as output by viridis_pal. If -1, the order of colors is reversed. If the color_palette is "kcm", options are 0 - 4 and will control the order
+of colors assigned to groups.}
 }
 \value{
 ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()

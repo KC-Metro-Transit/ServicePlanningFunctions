@@ -11,10 +11,11 @@
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load,
 #' weekly_trips - Total of  Weekly Trips on selected routes, day_type_trips - Count of Trips by day type on selected routes
 #' @param split_by_day_type T/F Do you want to show the plots by day side-by-side? Defaults to false
-#' @param color_palette Character.A character string indicating the color map option to use. Eight options are available: "magma", "inferno", "plasma",
+#' @param color_palette Character.A character string indicating the color map option to use. Nine options are available: "kcm", "magma", "inferno", "plasma",
 #' "viridis", "cividis", "rocket" , "mako"  or "turbo" .
-#'  @param color_palette_direction Numeric. 	Sets the order of colors in the scale. If 1, the default,
-#' colors are as output by viridis_pal. If -1, the order of colors is reversed.
+#' @param color_palette_direction Numeric. 	Sets the order of colors in the scale. If 1, the default,
+#' colors are as output by viridis_pal. If -1, the order of colors is reversed. If the color_palette is "kcm", options are 0 - 4 and will control the order
+#' of colors assigned to groups.
 #' @returns ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()
 #'
 #' @export
@@ -189,12 +190,6 @@ plot_trip_crosstab <- function(
   if (split_by_day_type == FALSE) {
     plt <- plt +
       ggplot2::geom_col(position = ggplot2::position_dodge()) +
-      viridis::scale_fill_viridis(
-        discrete = TRUE,
-        name = 'Legend',
-        option = color_palette,
-        direction = color_palette_direction
-      ) +
       ggplot2::ggtitle(paste0(
         var_title,
         ' by ',
@@ -218,16 +213,9 @@ plot_trip_crosstab <- function(
         guide = ggplot2::guide_axis(angle = 45)
       ) +
       ServicePlanningFunctions::style_kcm()
-    plt
   } else {
     plt <- plt +
       ggplot2::geom_col(position = ggplot2::position_dodge()) +
-      viridis::scale_fill_viridis(
-        discrete = TRUE,
-        name = 'Legend',
-        option = color_palette,
-        direction = color_palette_direction
-      ) +
       ggplot2::facet_wrap(ggplot2::vars(day)) +
       ggplot2::ggtitle(paste0(
         var_title,
@@ -252,6 +240,24 @@ plot_trip_crosstab <- function(
         guide = ggplot2::guide_axis(angle = 45)
       ) +
       ServicePlanningFunctions::style_kcm()
+  }
+
+  if (color_palette == "kcm") {
+    plt <- plt +
+      ServicePlanningFunctions::style_kcm_colors_default(
+        color_palette_direction = color_palette_direction
+      ) +
+      ggplot2::scale_y_continuous(labels = scales::label_comma())
+    plt
+  } else {
+    plt <- plt +
+      viridis::scale_fill_viridis(
+        discrete = TRUE,
+        name = 'Legend',
+        option = color_palette,
+        direction = color_palette_direction
+      ) +
+      ggplot2::scale_y_continuous(labels = scales::label_comma())
     plt
   }
 }
