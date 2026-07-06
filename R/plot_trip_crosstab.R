@@ -10,7 +10,7 @@
 #' @param x_axis Character. Grouping variable based on columns found in output from get_trip_ridership(). day, period, hour, route, route_name.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load,
 #' weekly_trips - Total of  Weekly Trips on selected routes, day_type_trips - Count of Trips by day type on selected routes
-#' @param split_by_day_type T/F Do you want to show the plots by day side-by-side? Defaults to false
+#' @param split_by Character. Variable to split plots by based on columns found in output from get_trip_ridership. day, period. Defaults to no splitting.
 #' @param color_palette Character.A character string indicating the color map option to use. Nine options are available: "kcm", "magma", "inferno", "plasma",
 #' "viridis", "cividis", "rocket" , "mako"  or "turbo" .
 #' @param color_palette_direction Numeric. 	Sets the order of colors in the scale. If 1, the default,
@@ -28,10 +28,23 @@ plot_trip_crosstab <- function(
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis = 'period',
   activity_type = 'ons',
-  split_by_day_type = FALSE,
+  split_by = NULL,
   color_palette = "viridis",
   color_palette_direction = 1
 ) {
+  if (x_axis == split_by) {
+    cli::cli_abort(c(
+      "X" = "x_axis and split_by variable is the same: {x_axis}. Please choose different variables for each."
+    ))
+  } else {
+    (split_by %in% c('service_change_num', 'service'))
+  }
+  {
+    cli::cli_abort(c(
+      "X" = "Cannot split by {split_by}."
+    ))
+  }
+
   data <- dataframe %>%
     dplyr::filter(
       as.character(day) %in% .env$day,
@@ -39,7 +52,7 @@ plot_trip_crosstab <- function(
       service_change_num %in% .env$service_change_num,
       route %in% .env$route
     )
-  if (split_by_day_type == FALSE) {
+  if (is.null(split_by)) {
     plot_data <- data %>%
       dplyr::group_by_at(dplyr::vars(service_change_num, service, x_axis)) %>%
       dplyr::select(
@@ -81,13 +94,13 @@ plot_trip_crosstab <- function(
         service_change_num,
         service,
         x_axis,
-        day
+        split_by
       )) %>%
       dplyr::select(
         service_change_num,
         service,
         'axis' = x_axis,
-        day,
+        'facet' = split_by,
         ons:avg_load,
         weekly_trips,
         day_type_trips
@@ -187,7 +200,7 @@ plot_trip_crosstab <- function(
       )
     )
   }
-  if (split_by_day_type == FALSE) {
+  if (is.null(split_by)) {
     plt <- plt +
       ggplot2::geom_col(position = ggplot2::position_dodge()) +
       ggplot2::ggtitle(paste0(
@@ -216,7 +229,7 @@ plot_trip_crosstab <- function(
   } else {
     plt <- plt +
       ggplot2::geom_col(position = ggplot2::position_dodge()) +
-      ggplot2::facet_wrap(ggplot2::vars(day)) +
+      ggplot2::facet_wrap(ggplot2::vars(facet)) +
       ggplot2::ggtitle(paste0(
         var_title,
         ' by ',

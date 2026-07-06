@@ -12,7 +12,7 @@ plot_trip_crosstab(
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis = "period",
   activity_type = "ons",
-  split_by_day_type = FALSE,
+  split_by = NULL,
   color_palette = "viridis",
   color_palette_direction = 1
 )
@@ -33,7 +33,7 @@ plot_trip_crosstab(
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load,
 weekly_trips - Total of  Weekly Trips on selected routes, day_type_trips - Count of Trips by day type on selected routes}
 
-\item{split_by_day_type}{T/F Do you want to show the plots by day side-by-side? Defaults to false}
+\item{split_by}{Character. Variable to split plots by based on columns found in output from get_trip_ridership. day, period. Defaults to no splitting.}
 
 \item{color_palette}{Character.A character string indicating the color map option to use. Nine options are available: "kcm", "magma", "inferno", "plasma",
 "viridis", "cividis", "rocket" , "mako"  or "turbo" .}
