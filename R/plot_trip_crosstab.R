@@ -36,10 +36,7 @@ plot_trip_crosstab <- function(
     cli::cli_abort(c(
       "X" = "x_axis and split_by variable is the same: {x_axis}. Please choose different variables for each."
     ))
-  } else {
-    (split_by %in% c('service_change_num', 'service'))
-  }
-  {
+  } else if (split_by %in% c('service_change_num', 'service')) {
     cli::cli_abort(c(
       "X" = "Cannot split by {split_by}."
     ))
