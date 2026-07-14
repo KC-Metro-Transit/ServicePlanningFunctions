@@ -11,7 +11,10 @@ plot_trip_crosstab(
   day = c("Weekday", "Saturday", "Sunday"),
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   x_axis = "period",
-  activity_type = "ons"
+  activity_type = "ons",
+  split_by = NULL,
+  color_palette = "viridis",
+  color_palette_direction = 1
 )
 }
 \arguments{
@@ -27,7 +30,17 @@ plot_trip_crosstab(
 
 \item{x_axis}{Character. Grouping variable based on columns found in output from get_trip_ridership(). day, period, hour, route, route_name.}
 
-\item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
+\item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load,
+weekly_trips - Total of  Weekly Trips on selected routes, day_type_trips - Count of Trips by day type on selected routes}
+
+\item{split_by}{Character. Variable to split plots by based on columns found in output from get_trip_ridership. day, period. Defaults to no splitting.}
+
+\item{color_palette}{Character.A character string indicating the color map option to use. Nine options are available: "kcm", "magma", "inferno", "plasma",
+"viridis", "cividis", "rocket" , "mako"  or "turbo" .}
+
+\item{color_palette_direction}{Numeric.     Sets the order of colors in the scale. If 1, the default,
+colors are as output by viridis_pal. If -1, the order of colors is reversed. If the color_palette is "kcm", options are 0 - 4 and will control the order
+of colors assigned to groups.}
 }
 \value{
 ggplot2 plot of ons, offs, and load by Select Variable and Service Change from get_trip_ridership()

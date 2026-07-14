@@ -19,5 +19,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Melissa Gaughan \email{mgaughan@kingcounty.gov}
 
+Authors:
+\itemize{
+  \item Michael Shin \email{mshin@kingcounty.gov}
+}
+
 }
 \keyword{internal}

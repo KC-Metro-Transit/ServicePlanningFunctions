@@ -4,7 +4,7 @@
 \alias{style_kcm_colors_default}
 \title{Use Default KCM Color Scheme for Plots}
 \usage{
-style_kcm_colors_default()
+style_kcm_colors_default(color_palette_direction = 0)
 }
 \value{
 utility list of default Metro colors
