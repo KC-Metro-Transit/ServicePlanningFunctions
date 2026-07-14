@@ -32,11 +32,14 @@ plot_trip_crosstab <- function(
   color_palette = "viridis",
   color_palette_direction = 1
 ) {
-  if (x_axis == split_by) {
+  if (x_axis == dplyr::coalesce(split_by, "No Split")) {
     cli::cli_abort(c(
       "X" = "x_axis and split_by variable is the same: {x_axis}. Please choose different variables for each."
     ))
-  } else if (split_by %in% c('service_change_num', 'service')) {
+  } else if (
+    dplyr::coalesce(split_by, "No Split") %in%
+      c('service_change_num', 'service')
+  ) {
     cli::cli_abort(c(
       "X" = "Cannot split by {split_by}."
     ))
@@ -224,6 +227,18 @@ plot_trip_crosstab <- function(
       ) +
       ServicePlanningFunctions::style_kcm()
   } else {
+    facet_title <- dplyr::case_match(
+      split_by,
+      'neighborhood' ~ 'Neighborhood',
+      'period' ~ 'Period',
+      'hour' ~ 'Hour',
+      'route' ~ 'Route',
+      'route_name' ~ 'Route',
+      'stop' ~ 'Stop',
+      'day' ~ 'Day',
+      .default = stringr::str_to_title(split_by)
+    )
+
     plt <- plt +
       ggplot2::geom_col(position = ggplot2::position_dodge()) +
       ggplot2::facet_wrap(ggplot2::vars(facet)) +
@@ -231,6 +246,8 @@ plot_trip_crosstab <- function(
         var_title,
         ' by ',
         axis_title,
+        ' and by ',
+        facet_title,
         ', ',
         'Trip Ridership'
       )) +
