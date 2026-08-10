@@ -110,6 +110,15 @@ count_trips_by_geography <- function(
   stops <- gtfs$stops %>%
     dplyr::distinct(stop_id, .keep_all = TRUE)
   # Routes #####
+  # Separate Metro and Non-Metro routes by agency_id
+  gtfs$routes <- gtfs$routes %>%
+    mutate(
+      agency_id = ifelse(
+        str_detect(route_id, "^[A-z]+"),
+        'Non-Metro',
+        'King County Metro Transit'
+      )
+    )
 
   routes <- clean_service_rte_num(gtfs$routes, netplan_gtfs = netplan_gtfs) %>%
     dplyr::mutate(route_num = as.numeric(service_rte_num)) %>%
