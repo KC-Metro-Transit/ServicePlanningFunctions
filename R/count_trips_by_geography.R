@@ -111,14 +111,16 @@ count_trips_by_geography <- function(
     dplyr::distinct(stop_id, .keep_all = TRUE)
   # Routes #####
   # Separate Metro and Non-Metro routes by agency_id
-  gtfs$routes <- gtfs$routes %>%
-    mutate(
-      agency_id = ifelse(
-        str_detect(route_id, "^[A-z]+"),
-        'Non-Metro',
-        'King County Metro Transit'
+  if (netplan_gtfs) {
+    gtfs$routes <- gtfs$routes %>%
+      mutate(
+        agency_id = ifelse(
+          str_detect(route_id, "^[A-z]+"),
+          'Non-Metro',
+          'King County Metro Transit'
+        )
       )
-    )
+  }
 
   routes <- clean_service_rte_num(gtfs$routes, netplan_gtfs = netplan_gtfs) %>%
     dplyr::mutate(route_num = as.numeric(service_rte_num)) %>%
@@ -247,6 +249,7 @@ count_trips_by_geography <- function(
     dplyr::group_by(
       GEOID,
       trip_id,
+      agency_id,
       route_id,
       service_rte_num,
       vehicle_capacity
@@ -258,7 +261,7 @@ count_trips_by_geography <- function(
     dplyr::mutate(trip_count = sum(calendar_sum)) %>% #summarise trips based on full calendar
     #unlike the week level analysis, we don't need to multiply the # of trips by the weekly trips.
     dplyr::ungroup() %>%
-    dplyr::group_by(GEOID, route_id, service_rte_num) %>%
+    dplyr::group_by(GEOID, agency_id, route_id, service_rte_num) %>%
     dplyr::summarize(
       trips_per_rte = sum(trip_count, na.rm = TRUE),
       route_capacity = sum(vehicle_capacity * trip_count, na.rm = T)
@@ -272,7 +275,13 @@ count_trips_by_geography <- function(
   routes_in_geo <- trips_by_geo_rte %>%
     dplyr::ungroup() %>%
     dplyr::group_by(GEOID) %>%
-    dplyr::summarize(routes_in_geo = toString(service_rte_num))
+    dplyr::summarize(
+      routes_in_geo = toString(sort(ifelse(
+        agency_id == 'Non-Metro',
+        route_id,
+        service_rte_num
+      )))
+    )
 
   trips_by_geo <- trips_by_geo_rte %>%
     dplyr::group_by(GEOID) %>%
