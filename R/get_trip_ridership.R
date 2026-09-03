@@ -22,6 +22,7 @@ get_trip_ridership <- function(
       "
 SELECT [SERVICE_CHANGE_NUM]
       ,[SERVICE_RTE_NUM] as route
+      ,[EXPRESS_LOCAL_CD]
       ,[INBD_OUTBD_CD] as direction
       ,[SCHED_DAY_TYPE_CODED_NUM] as day_code
       ,[TRIP_ID]
