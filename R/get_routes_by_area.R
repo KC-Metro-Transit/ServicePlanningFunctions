@@ -353,7 +353,7 @@ get_routes_by_area <- function(
   if (return_type == "table") {
     routes_in_area_geo
   } else if (return_type == "interactive_map") {
-    mapview::mapviewOptions(basemaps = "CartoDB.Positron")
+    mapview::mapviewOptions(basemaps = "Stadia.AlidadeSmooth")
     mapview::mapview(
       routes_in_area_geo,
       zcol = "route_date",
