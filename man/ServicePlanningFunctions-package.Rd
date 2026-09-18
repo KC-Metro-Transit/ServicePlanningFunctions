@@ -21,6 +21,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Melissa Gaughan \email{mgaughan@kingcounty.gov}
   \item Michael Shin \email{mshin@kingcounty.gov}
 }
 

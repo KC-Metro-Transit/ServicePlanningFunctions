@@ -162,7 +162,7 @@ get_stop_ridership_by_area <- function(
     )
 
     ons_map <- leaflet::leaflet() %>%
-      leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
+      leaflet::addProviderTiles(provider = "Stadia.AlidadeSmooth") %>%
       leaflet::addPolygons(
         data = geography,
         fill = FALSE,

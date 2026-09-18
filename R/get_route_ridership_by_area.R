@@ -164,7 +164,7 @@ get_route_ridership_by_area <- function(
     )
 
     ons_map <- leaflet::leaflet() %>%
-      leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
+      leaflet::addProviderTiles(provider = "Stadia.AlidadeSmooth") %>%
       leaflet::addPolygons(
         data = geography,
         fill = FALSE,
@@ -180,7 +180,7 @@ get_route_ridership_by_area <- function(
         stroke = TRUE,
         weight = 3,
         opacity = 1,
-        label = ~ geo_rides$value,
+        label = ~ geo_rides$route_name,
         labelOptions = leaflet::labelOptions(
           style = list("font-weight" = "normal", padding = "3px 8px"),
           textsize = "15px",

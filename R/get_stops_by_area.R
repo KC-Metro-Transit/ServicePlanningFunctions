@@ -104,7 +104,8 @@ get_stops_by_area <- function(
   if (return_type == "table") {
     filtered_stops
   } else if (return_type == "interactive_map") {
-    mapview::mapviewOptions(basemaps = "CartoDB.Positron")
+    mapview::mapviewOptions(basemaps = "Stadia.AlidadeSmooth")
+
     mapview::mapview(
       filtered_stops,
       zcol = "stop_id_str",
