@@ -68,6 +68,8 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         route_short_name == "Link light rail" ~ "599",
         route_short_name == "First Hill Streetcar" ~ "96",
         route_short_name == "South Lake Union Streetcar" ~ "98",
+        route_short_name == "Golden Gardens Direct" ~ "611",
+        route_short_name == "Waterfront Shuttle" ~ "616",
         route_short_name == "SVT" ~ "629",
         route_short_name == "Valley Shuttle" ~ "629",
         route_short_name == "Duvall-Monroe Shuttle" ~ "627",
@@ -82,6 +84,7 @@ clean_service_rte_num <- function(route_table, netplan_gtfs = FALSE) {
         route_short_name == "STCL" ~ "999",
         route_short_name == "Main Loop" ~ "9000",
         route_short_name == "Evening Hotel Loop" ~ "9001",
+        route_short_name == "Easy Loop" ~ "9002",
         route_short_name == "DART 249" ~ "249",
         .default = dplyr::coalesce(route_short_name, route_long_name)
       )

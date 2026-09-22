@@ -8,7 +8,7 @@
 #' @export
 
 clean_service_rte_name <- function(df, route_col) {
-  route_col = rlang::enquo(route_col)
+  route_col <- rlang::enquo(route_col)
   dplyr::mutate(
     df,
     clean_route = dplyr::case_match(
@@ -23,6 +23,8 @@ clean_service_rte_name <- function(df, route_col) {
       '678' ~ 'H Line',
       '96' ~ 'First Hill Streetcar',
       '98' ~ 'South Lake Union Streetcar',
+      '611' ~ 'Golden Gardens Direct',
+      '616' ~ 'Waterfront Shuttle',
       '629' ~ 'SVT',
       '627' ~ 'Duvall-Monroe Shuttle',
       '636' ~ 'Trailhead Direct Mt. Si',
