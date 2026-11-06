@@ -17,7 +17,7 @@ get_stop_ridership_by_area(
 )
 }
 \arguments{
-\item{area}{Character. he name of the LOCUS  of KC Council district of interest. Can accept multiples. Not required for block group or tract options.}
+\item{area}{Character. The name of the LOCUS or KC Council district of interest. Can accept multiples. Not required for block group or tract options.}
 
 \item{gtfs_date}{'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.}
 

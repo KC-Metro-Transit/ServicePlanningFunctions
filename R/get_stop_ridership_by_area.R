@@ -2,7 +2,7 @@
 #'
 #' @description This function returns either an interactive map of weekday stop-level ridership for the selected area or a dataframe showing ridership data for stops in the selected area.
 #'
-#' @param area Character. he name of the LOCUS  of KC Council district of interest. Can accept multiples. Not required for block group or tract options.
+#' @param area Character. The name of the LOCUS or KC Council district of interest. Can accept multiples. Not required for block group or tract options.
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
