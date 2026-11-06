@@ -266,7 +266,6 @@ create_trips_table <- function(
       )
   } else {
     print("check data structure of stop_times$arrival_times.")
-    break
   }
 
   #headway range #####

@@ -113,7 +113,7 @@ get_stops_by_area <- function(
   filtered_stops <- sf::st_filter(
     x = stops,
     y = geography,
-    join = sf::st_intersects
+    join = sf::st_within
   ) |>
     dplyr::mutate(stop_id_str = as.character(stop_id))
 
