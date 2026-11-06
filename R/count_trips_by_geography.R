@@ -75,8 +75,6 @@ count_trips_by_geography <- function(
     )) %>%
       dplyr::rename(GEOID = GEO_ID_TRT) %>%
       sf::st_transform(2926)
-    acs <- remove_water(acs) %>%
-      sf::st_buffer(dist = 50)
     if (buffer_geography == T) {
       acs <- acs %>%
         sf::st_buffer(dist = 50)
