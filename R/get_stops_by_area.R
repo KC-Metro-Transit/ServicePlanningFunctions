@@ -2,11 +2,11 @@
 #'
 #' @description Returns a map or table of stops within a specified area. Areas are based on the LOCUS districts shapefile. Use show_areas() to see a map of all available areas.
 #'
-#' @param area Character. The name of the LOCUS district of interest. Can accept multiples.
+#' @param area Character. The name of the LOCUS  of KC Council district of interest. Can accept multiples. Not required for block group or tract options.
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date. Can accept multiples.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
-#' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
+#' @param data_source Character. Specify which areas to show. Options are 'block_group', tract, 'LOCUS' or 'King County Council Districts'
 #' @returns Interactive map object or table of stops in selected area.
 #'
 #' @export
@@ -80,14 +80,31 @@ get_stops_by_area <- function(
   } else if (data_source == "King County Council Districts") {
     geography <- sf::read_sf(fs::path_package(
       'extdata',
-      'king_county_council_districts.shp'
+      'king_county_council_districts.shp',
+      package = "ServicePlanningFunctions"
     )) |>
       dplyr::rename(name = area) |>
       dplyr::filter(name %in% .env$area) |>
       sf::st_transform(2926)
+  } else if (data_source == "block_group") {
+    geography <- sf::read_sf(fs::path_package(
+      'extdata',
+      'blkgrp20_shore.shp',
+      package = "ServicePlanningFunctions"
+    )) |>
+      sf::st_transform(2926) |>
+      dplyr::rename(name = GEO_ID_GRP)
+  } else if (data_source == "tract") {
+    geography <- sf::read_sf(fs::path_package(
+      'extdata',
+      '2020_Census_Tracts_for_King_County___tracts20_area.shp',
+      package = "ServicePlanningFunctions"
+    )) |>
+      sf::st_transform(2926) |>
+      dplyr::rename(name = GEO_ID_TRT)
   } else {
     cli::cli_abort(
-      message = "Incorrect data_source  parameter. Options are 'LOCUS' or 'King County Council Districts'."
+      message = "Incorrect data_source parameter. Options are 'block_group', 'tract', 'LOCUS' or 'King County Council Districts'."
     )
   }
 
@@ -98,16 +115,23 @@ get_stops_by_area <- function(
     y = geography,
     join = sf::st_intersects
   ) |>
-    sf::st_transform(4326) |>
     dplyr::mutate(stop_id_str = as.character(stop_id))
 
+  joined_stops <- sf::st_join(
+    filtered_stops,
+    geography,
+    join = sf::st_within
+  ) |> #get polygon info into stop data
+    sf::st_transform(4326) |>
+    dplyr::select(stop_id, stop_id_str, name, capture_date, geometry)
+
   if (return_type == "table") {
-    filtered_stops
+    joined_stops
   } else if (return_type == "interactive_map") {
     mapview::mapviewOptions(basemaps = "Stadia.AlidadeSmooth")
 
     mapview::mapview(
-      filtered_stops,
+      joined_stops,
       zcol = "stop_id_str",
       layer.name = "King County Metro Stops"
     )

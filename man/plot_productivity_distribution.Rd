@@ -80,5 +80,6 @@ plot_productivity_distribution(service_change = 253,
  label_size = 8,
  style_size = 'large')
 
-ggplot2::ggsave("RapidRide Passenger Miles per Platform Mile.png", width = 12.5, height = 6.9, units = "in")
+ggplot2::ggsave("RapidRide Passenger Miles per Platform Mile.png",
+width = 12.5, height = 6.9, units = "in")
 }

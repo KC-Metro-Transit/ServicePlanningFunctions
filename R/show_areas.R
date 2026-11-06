@@ -24,7 +24,7 @@ show_areas <- function(return_type = "interactive_map", data_source = "LOCUS") {
       dplyr::rename(name = area)
   } else {
     cli::cli_abort(
-      message = "Incorrect data_source  parameter. Options are 'LOCUS' or 'King County Council Districts'."
+      message = "Incorrect data_source parameter. Options are 'block_group', 'tract','LOCUS' or 'King County Council Districts'."
     )
   }
 
@@ -35,6 +35,7 @@ show_areas <- function(return_type = "interactive_map", data_source = "LOCUS") {
       dplyr::select(name)
     out
   } else if (return_type == "interactive_map") {
+    mapview::mapviewOptions(basemaps = "Stadia.AlidadeSmooth")
     out <- geography |>
       sf::st_transform(2926) |>
       janitor::clean_names()

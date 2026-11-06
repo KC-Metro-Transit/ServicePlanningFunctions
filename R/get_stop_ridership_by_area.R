@@ -2,7 +2,7 @@
 #'
 #' @description This function returns either an interactive map of weekday stop-level ridership for the selected area or a dataframe showing ridership data for stops in the selected area.
 #'
-#' @param area Character. The name of the LOCUS district of interest. Can accept multiples.
+#' @param area Character. he name of the LOCUS  of KC Council district of interest. Can accept multiples. Not required for block group or tract options.
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
@@ -11,7 +11,7 @@
 #' @param route Numeric.  The route identifiers of interest. Optional.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#' @param data_source Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'
+#' @param data_source Character. Specify which areas to show. Options are "block_group", tract, 'LOCUS' or 'King County Council Districts'
 #' @returns Interactive map object or dataframe of stop ridership summed by selected periods.
 #'
 #' @export
@@ -145,6 +145,26 @@ get_stop_ridership_by_area <- function(
         dplyr::rename(name = area) |>
         dplyr::filter(name %in% area) |>
         sf::st_transform(4326)
+    } else if (data_source == "block_group") {
+      geography <- sf::read_sf(fs::path_package(
+        'extdata',
+        'blkgrp20_shore.shp',
+        package = "ServicePlanningFunctions"
+      )) |>
+        dplyr::rename(name = GEO_ID_GRP) |>
+        sf::st_transform(4326)
+    } else if (data_source == "tract") {
+      geography <- sf::read_sf(fs::path_package(
+        'extdata',
+        '2020_Census_Tracts_for_King_County___tracts20_area.shp',
+        package = "ServicePlanningFunctions"
+      )) |>
+        dplyr::rename(name = GEO_ID_TRT) |>
+        sf::st_transform(4326)
+    } else {
+      cli::cli_abort(
+        message = "Incorrect data_source parameter. Options are 'block_group', 'LOCUS' or 'King County Council Districts'."
+      )
     }
 
     pal <- leaflet::colorBin(
