@@ -6,6 +6,9 @@
 \usage{
 style_kcm_colors_default(color_palette_direction = 0)
 }
+\arguments{
+\item{color_palette_direction}{Numeric.  (0 - 4) Changes order of KCM color palette. 0 is yellow first, 4 is purple first.}
+}
 \value{
 utility list of default Metro colors
 }

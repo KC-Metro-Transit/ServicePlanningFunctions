@@ -17,7 +17,8 @@ count_trips_by_geography(
   save_RDS = F,
   gtfs_type,
   output_folder,
-  run_id = 1
+  run_id = 1,
+  buffer_geography = T
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ count_trips_by_geography(
 \item{output_folder}{Character. Where do you want the outputs saved?}
 
 \item{run_id}{Numeric. Useful for using this function with pmap.}
+
+\item{buffer_geography}{T/F. Should a 50 ft buffer be applied to polygons to account for stops on edges of polygon geometries?}
 }
 \value{
 List of trips by route/geography and by geography (summed)

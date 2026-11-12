@@ -13,6 +13,7 @@
 #' @param save_csv T/F. Do you want to export csvs?
 #' @param save_RDS T/F. Do you want to export RDS?
 #' @param run_id Numeric. Useful for using this function with pmap.
+#' @param buffer_geography T/F. Should a 50 ft buffer be applied to polygons to account for stops on edges of polygon geometries?
 #'
 #' @return List of trips by route/geography and by geography (summed)
 #' @export
@@ -35,7 +36,8 @@ count_trips_by_geography <- function(
   save_RDS = F,
   gtfs_type,
   output_folder,
-  run_id = 1
+  run_id = 1,
+  buffer_geography = T
 ) {
   start_time_vec <- stringr::str_split_fixed(begin_time, pattern = ":", 3)
 
@@ -58,8 +60,13 @@ count_trips_by_geography <- function(
       package = "ServicePlanningFunctions"
     )) %>%
       dplyr::rename(GEOID = GEO_ID_GRP) %>%
-      sf::st_transform(2926) %>%
-      sf::st_buffer(dist = 50)
+      sf::st_transform(2926)
+    if (buffer_geography == T) {
+      acs <- acs %>%
+        sf::st_buffer(dist = 50)
+    } else {
+      acs
+    }
   } else if (geography == "tract") {
     acs <- sf::read_sf(fs::path_package(
       "extdata",
@@ -68,8 +75,12 @@ count_trips_by_geography <- function(
     )) %>%
       dplyr::rename(GEOID = GEO_ID_TRT) %>%
       sf::st_transform(2926)
-    acs <- remove_water(acs) %>%
-      sf::st_buffer(dist = 50)
+    if (buffer_geography == T) {
+      acs <- acs %>%
+        sf::st_buffer(dist = 50)
+    } else {
+      acs
+    }
   } else if (geography == "eigth_mile_hex") {
     acs <- sf::read_sf(fs::path_package(
       "extdata",
@@ -113,9 +124,9 @@ count_trips_by_geography <- function(
   # Separate Metro and Non-Metro routes by agency_id
   if (netplan_gtfs) {
     gtfs$routes <- gtfs$routes %>%
-      mutate(
+      dplyr::mutate(
         agency_id = ifelse(
-          str_detect(route_id, "^[A-z]+"),
+          stringr::str_detect(route_id, "^[A-z]+"),
           'Non-Metro',
           'King County Metro Transit'
         )
@@ -206,7 +217,7 @@ count_trips_by_geography <- function(
 
   #join stops to block groups or tracts. This is how you know which stops are in each block group or tract.
 
-  stops_geo <- sf::st_join(stops_sf, acs, join = sf::st_intersects) %>%
+  stops_geo <- sf::st_join(stops_sf, acs, join = sf::st_within) %>%
     sf::st_drop_geometry()
 
   #stops are getting read in as numeric but there are character types at the bottom of the document. Need to force type.

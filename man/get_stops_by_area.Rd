@@ -13,7 +13,7 @@ get_stops_by_area(
 )
 }
 \arguments{
-\item{area}{Character. The name of the LOCUS district of interest. Can accept multiples.}
+\item{area}{Character. The name of the LOCUS  of KC Council district of interest. Can accept multiples. Not required for block group or tract options.}
 
 \item{gtfs_date}{'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date. Can accept multiples.}
 
@@ -21,7 +21,7 @@ get_stops_by_area(
 
 \item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
 
-\item{data_source}{Character. Specify which areas to show. Options are 'LOCUS' or 'King County Council Districts'}
+\item{data_source}{Character. Specify which areas to show. Options are 'block_group', tract, 'LOCUS' or 'King County Council Districts'}
 }
 \value{
 Interactive map object or table of stops in selected area.
