@@ -12,6 +12,7 @@
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #' @param data_source Character. Specify which areas to show. Options are 'block_group', 'tract', 'LOCUS' or 'King County Council Districts'
+#' @param color_upper_bound Numeric. Assigns custom color legend that will range from 0 to the color_upper_bound value. Optional for interactive map option. Defaults to color legend that ranges from minimum and maximum metric value.
 #' @returns Interactive map object or dataframe of stop ridership summed by selected periods and geometries.
 #'
 #' @export
@@ -25,7 +26,8 @@ sum_stop_ridership_by_area <- function(
   return_type = 'interactive_map',
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons',
-  data_source = 'LOCUS'
+  data_source = 'LOCUS',
+  color_upper_bound = NULL
 ) {
   stop_data <- get_stop_ridership_by_area(
     area = area,
@@ -109,54 +111,113 @@ sum_stop_ridership_by_area <- function(
       dplyr::left_join(summed_stop_ridership, by = "name") |>
       tidyr::drop_na(sum_value)
 
-    pal <- leaflet::colorBin(
-      palette = c(
+    # When only one record is present, colorBin is not used since it returns an error.
+    if (nrow(plot_data) == 1) {
+      ons_map <- leaflet::leaflet() %>%
+        leaflet::addProviderTiles(provider = "Stadia.AlidadeSmooth") %>%
+        leaflet::addPolygons(
+          data = plot_data,
+          fillColor = "#FDB71A",
+          fillOpacity = 0.8,
+          color = "black",
+          stroke = TRUE,
+          weight = 1,
+          dashArray = c("6"),
+          popup = paste(
+            "<b>",
+            plot_data$name,
+            "<br>",
+            plot_data$service,
+            "</b>",
+            "<br>",
+            "Sum:",
+            plot_data$sum_value
+          )
+        ) |>
+
+        leaflet::addLegend(
+          position = "bottomright",
+          colors = "#FDB71A",
+          labels = paste0(plot_data$name, ': ', plot_data$sum_value),
+          opacity = .75,
+          title = paste(
+            map_type_label,
+            "<br>",
+            time_period_label,
+            "<br>"
+          )
+        )
+    } else {
+      color_scheme <- c(
         "#FDB71A",
         "#FF7B21",
         "#31859F",
         "#006633",
         "#390854"
-      ),
-      domain = plot_data$sum_value,
-      reverse = FALSE,
-      pretty = FALSE,
-      bins = 5
-    )
-
-    ons_map <- leaflet::leaflet() %>%
-      leaflet::addProviderTiles(provider = "Stadia.AlidadeSmooth") %>%
-      leaflet::addPolygons(
-        data = plot_data,
-        fillColor = ~ pal(sum_value),
-        fillOpacity = 0.8,
-        color = "black",
-        stroke = TRUE,
-        weight = 1,
-        dashArray = c("6"),
-        popup = paste(
-          "<b>",
-          plot_data$name,
-          "<br>",
-          plot_data$service,
-          "</b>",
-          "<br>",
-          "Sum:",
-          plot_data$sum_value
-        )
-      ) |>
-
-      leaflet::addLegend(
-        position = "bottomright",
-        pal = pal,
-        values = plot_data$sum_value,
-        opacity = .75,
-        title = paste(
-          map_type_label,
-          "<br>",
-          time_period_label,
-          "<br>"
-        )
       )
+
+      # If color_upper_bound is not provided, creates legend starting from minimum value to maximum value
+      if (is.null(color_upper_bound)) {
+        pal <- leaflet::colorBin(
+          palette = color_scheme,
+          domain <- plot_data$sum_value,
+          reverse = FALSE,
+          pretty = FALSE,
+          bins = 5
+        )
+      } else {
+        pal <- leaflet::colorBin(
+          palette = color_scheme,
+          reverse = FALSE,
+          pretty = FALSE,
+          # set custom bin where it is evenly split by 4 from zero to color_upper_bound and add max value of infinity to capture all values above color_upper_bound
+          bins = c(seq(0, color_upper_bound, by = color_upper_bound / 4), Inf)
+        )
+      }
+
+      ons_map <- leaflet::leaflet() %>%
+        leaflet::addProviderTiles(provider = "Stadia.AlidadeSmooth") %>%
+        leaflet::addPolygons(
+          data = plot_data,
+          fillColor = ~ pal(sum_value),
+          fillOpacity = 0.8,
+          color = "black",
+          stroke = TRUE,
+          weight = 1,
+          dashArray = c("6"),
+          popup = paste(
+            "<b>",
+            plot_data$name,
+            "<br>",
+            plot_data$service,
+            "</b>",
+            "<br>",
+            "Sum:",
+            plot_data$sum_value
+          )
+        ) |>
+
+        leaflet::addLegend(
+          position = "bottomright",
+          pal = pal,
+          values = plot_data$sum_value,
+          # Custom label function so that if color_upper_bound is provided, "> color_upper_bound" is displayed instead of "color_upper_bound - Inf"
+          labFormat = function(type, cuts) {
+            labels <- paste0(cuts[-length(cuts)], " – ", cuts[-1])
+            if (!is.null(color_upper_bound)) {
+              labels[5] <- paste0("> ", color_upper_bound)
+            }
+            labels
+          },
+          opacity = .75,
+          title = paste(
+            map_type_label,
+            "<br>",
+            time_period_label,
+            "<br>"
+          )
+        )
+    }
 
     ons_map
   } else {

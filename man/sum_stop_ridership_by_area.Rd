@@ -13,7 +13,8 @@ sum_stop_ridership_by_area(
   return_type = "interactive_map",
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = "ons",
-  data_source = "LOCUS"
+  data_source = "LOCUS",
+  color_upper_bound = NULL
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ Can accept multiple values as a vector if you are returning a table. For maps, s
 \item{activity_type}{Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.}
 
 \item{data_source}{Character. Specify which areas to show. Options are 'block_group', 'tract', 'LOCUS' or 'King County Council Districts'}
+
+\item{color_upper_bound}{Numeric. Assigns custom color legend that will range from 0 to the color_upper_bound value. Optional for interactive map option. Defaults to color legend that ranges from minimum and maximum metric value.}
 }
 \value{
 Interactive map object or dataframe of stop ridership summed by selected periods and geometries.
