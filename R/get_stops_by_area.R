@@ -6,7 +6,7 @@
 #' @param gtfs_date 'YYYY-MM-DD' Date of GTFS file to use for stop locations. Defaults to nearest dataset released before or on specified date. Can accept multiples.
 #' @param tbird_connection The connection object created by connect_to_tbird()
 #' @param return_type Character. Specify what you want to see. Options are "table" and "interactive_map".
-#' @param data_source Character. Specify which areas to show. Options are 'block_group', tract, 'LOCUS' or 'King County Council Districts'
+#' @param data_source Character. Specify which areas to show. Options are "block_group", "tract", "LOCUS" or "King County Council Districts".
 #' @returns Interactive map object or table of stops in selected area.
 #'
 #' @export

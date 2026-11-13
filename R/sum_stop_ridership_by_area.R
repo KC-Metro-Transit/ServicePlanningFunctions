@@ -11,7 +11,7 @@
 #' @param route Numeric.  The route identifiers of interest. Optional.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#' @param data_source Character. Specify which areas to show. Options are 'block_group', 'tract', 'LOCUS' or 'King County Council Districts'
+#' @param data_source Character. Specify which areas to show. Options are "block_group", "tract", "LOCUS" or "King County Council Districts".
 #' @param color_upper_bound Numeric. Assigns custom color legend that will range from 0 to the color_upper_bound value. Optional for interactive map option. Defaults to color legend that ranges from minimum and maximum metric value.
 #' @returns Interactive map object or dataframe of stop ridership summed by selected periods and geometries.
 #'
@@ -103,7 +103,7 @@ sum_stop_ridership_by_area <- function(
         sf::st_transform(4326)
     } else {
       cli::cli_abort(
-        message = "Incorrect data_source parameter. Options are 'block_group', 'LOCUS' or 'King County Council Districts'."
+        message = "Incorrect data_source parameter. Options are 'block_group', 'tract', 'LOCUS' or 'King County Council Districts'."
       )
     }
 

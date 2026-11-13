@@ -21,7 +21,7 @@ get_stops_by_area(
 
 \item{return_type}{Character. Specify what you want to see. Options are "table" and "interactive_map".}
 
-\item{data_source}{Character. Specify which areas to show. Options are 'block_group', tract, 'LOCUS' or 'King County Council Districts'}
+\item{data_source}{Character. Specify which areas to show. Options are "block_group", "tract", "LOCUS" or "King County Council Districts".}
 }
 \value{
 Interactive map object or table of stops in selected area.

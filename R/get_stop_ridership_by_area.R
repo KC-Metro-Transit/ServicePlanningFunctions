@@ -11,7 +11,7 @@
 #' @param route Numeric.  The route identifiers of interest. Optional.
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
-#' @param data_source Character. Specify which areas to show. Options are "block_group", tract, 'LOCUS' or 'King County Council Districts'
+#' @param data_source Character. Specify which areas to show. Options are "block_group", "tract", "LOCUS" or "King County Council Districts".
 #' @returns Interactive map object or dataframe of stop ridership summed by selected periods.
 #'
 #' @export
