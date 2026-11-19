@@ -138,7 +138,14 @@ sum_stop_ridership_by_area <- function(
         leaflet::addLegend(
           position = "bottomright",
           colors = "#FDB71A",
-          labels = paste0(plot_data$name, ': ', plot_data$sum_value),
+          labels = paste0(
+            plot_data$name,
+            ': ',
+            scales::comma(
+              round(plot_data$sum_value, digits = -2),
+              big.mark = ","
+            )
+          ),
           opacity = .75,
           title = paste(
             map_type_label,
