@@ -158,13 +158,26 @@ sum_stop_ridership_by_area <- function(
 
       # If color_upper_bound is not provided, creates legend starting from minimum value to maximum value
       if (is.null(color_upper_bound)) {
-        pal <- leaflet::colorBin(
-          palette = color_scheme,
-          domain <- plot_data$sum_value,
-          reverse = FALSE,
-          pretty = FALSE,
-          bins = 5
-        )
+        if (nrow(plot_data) < 6) {
+          pal <- leaflet::colorBin(
+            palette = color_scheme,
+            domain <- plot_data$sum_value,
+            reverse = FALSE,
+            pretty = TRUE,
+            bins = BAMMtools::getJenksBreaks(
+              plot_data$sum_value,
+              k = nrow(plot_data)
+            )
+          )
+        } else {
+          pal <- leaflet::colorBin(
+            palette = color_scheme,
+            domain <- plot_data$sum_value,
+            reverse = FALSE,
+            pretty = TRUE,
+            bins = BAMMtools::getJenksBreaks(plot_data$sum_value, k = 6)
+          )
+        }
       } else {
         pal <- leaflet::colorBin(
           palette = color_scheme,
@@ -202,13 +215,19 @@ sum_stop_ridership_by_area <- function(
           pal = pal,
           values = plot_data$sum_value,
           # Custom label function so that if color_upper_bound is provided, "> color_upper_bound" is displayed instead of "color_upper_bound - Inf"
-          labFormat = function(type, cuts) {
-            labels <- paste0(cuts[-length(cuts)], " – ", cuts[-1])
-            if (!is.null(color_upper_bound)) {
-              labels[5] <- paste0("> ", color_upper_bound)
-            }
-            labels
-          },
+          #function(type, cuts) {
+          # labels <- paste0(cuts[-length(cuts)], " – ", cuts[-1])
+          # if (!is.null(color_upper_bound)) {
+          #  labels[5] <- paste0("> ", color_upper_bound)
+          # }
+          labFormat = leaflet::labelFormat(
+            big.mark = ",",
+            digits = 0,
+            transform = function(x) round(x, digits = -2)
+          ),
+          # labels
+          # }
+          ,
           opacity = .75,
           title = paste(
             map_type_label,
