@@ -7,12 +7,24 @@ Find the natural breaks (jenks) of  a set of data values.
 If data contains negative and positive values, breaks are split at zero.
 Used primarily as an input to chloropleth mapping.}
 \usage{
-calculate_bucket(values_df, max_bin = 10)
+calculate_bucket(
+  values_df,
+  max_bin = 10,
+  color_below = "#e34a33",
+  color_above = "#2166ac",
+  color_center = "white"
+)
 }
 \arguments{
 \item{values_df}{Dataframe column or vector. The set of values that you want to find the natural breaks of}
 
-\item{max_bin}{Max number of bins you want to return. May return fewer bins based on data distribution}
+\item{max_bin}{Numeric Max number of bins you want to return. May return fewer bins based on data distribution}
+
+\item{color_below}{Character Hex code of color to use for negative values. Defaults to '#e34a33'}
+
+\item{color_above}{Character Hex code of color to use for positive values. Defaults to '#2166ac'}
+
+\item{color_center}{Character Hex code of color to use for zero. Defaults to '#FFFFFF'}
 }
 \value{
 List of breaks and labels for break ranges
