@@ -1,5 +1,5 @@
 #' Use Default KCM Color Scheme for Plots
-#'
+#' @param color_palette_direction Numeric.  (0 - 4) Changes order of KCM color palette. 0 is yellow first, 4 is purple first.
 #' @returns utility list of default Metro colors
 #'
 #' @export

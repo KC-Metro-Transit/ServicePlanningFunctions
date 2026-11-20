@@ -39,7 +39,8 @@ Imports:
     ggplot2, 
     rlang, 
     mapview, 
-    leaflet
+    leaflet, 
+    tidyselect
 URL: https://github.com/melissa-gaughan/ServicePlanningFunctions
 BugReports: https://github.com/melissa-gaughan/ServicePlanningFunctions/issues
 Suggests: 
