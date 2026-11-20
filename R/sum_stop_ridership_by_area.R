@@ -12,7 +12,6 @@
 #' @param time_period Character. AM, PM, MID, XEV. XNT.
 #' @param activity_type Character. ons - Average Daily Boarding, offs - Average Daily Alightings, avg_lod - Average Max Load.
 #' @param data_source Character. Specify which areas to show. Options are "block_group", "tract", "LOCUS" or "King County Council Districts".
-#' @param color_upper_bound Numeric. Assigns custom color legend that will range from 0 to the color_upper_bound value. Optional for interactive map option. Defaults to color legend that ranges from minimum and maximum metric value.
 #' @returns Interactive map object or dataframe of stop ridership summed by selected periods and geometries.
 #'
 #' @export
@@ -26,8 +25,7 @@ sum_stop_ridership_by_area <- function(
   return_type = 'interactive_map',
   time_period = c("AM", "PM", "MID", "XEV", "XNT"),
   activity_type = 'ons',
-  data_source = 'LOCUS',
-  color_upper_bound = NULL
+  data_source = 'LOCUS'
 ) {
   stop_data <- get_stop_ridership_by_area(
     area = area,
@@ -163,35 +161,24 @@ sum_stop_ridership_by_area <- function(
         "#390854"
       )
 
-      # If color_upper_bound is not provided, creates legend starting from minimum value to maximum value
-      if (is.null(color_upper_bound)) {
-        if (nrow(plot_data) < 6) {
-          pal <- leaflet::colorBin(
-            palette = color_scheme,
-            domain <- plot_data$sum_value,
-            reverse = FALSE,
-            pretty = TRUE,
-            bins = BAMMtools::getJenksBreaks(
-              plot_data$sum_value,
-              k = nrow(plot_data)
-            )
+      if (nrow(plot_data) < 6) {
+        pal <- leaflet::colorBin(
+          palette = color_scheme,
+          domain = plot_data$sum_value,
+          reverse = FALSE,
+          pretty = TRUE,
+          bins = BAMMtools::getJenksBreaks(
+            plot_data$sum_value,
+            k = nrow(plot_data)
           )
-        } else {
-          pal <- leaflet::colorBin(
-            palette = color_scheme,
-            domain <- plot_data$sum_value,
-            reverse = FALSE,
-            pretty = TRUE,
-            bins = BAMMtools::getJenksBreaks(plot_data$sum_value, k = 6)
-          )
-        }
+        )
       } else {
         pal <- leaflet::colorBin(
           palette = color_scheme,
+          domain = plot_data$sum_value,
           reverse = FALSE,
-          pretty = FALSE,
-          # set custom bin where it is evenly split by 4 from zero to color_upper_bound and add max value of infinity to capture all values above color_upper_bound
-          bins = c(seq(0, color_upper_bound, by = color_upper_bound / 4), Inf)
+          pretty = TRUE,
+          bins = BAMMtools::getJenksBreaks(plot_data$sum_value, k = 6)
         )
       }
 
@@ -221,12 +208,6 @@ sum_stop_ridership_by_area <- function(
           position = "bottomright",
           pal = pal,
           values = plot_data$sum_value,
-          # Custom label function so that if color_upper_bound is provided, "> color_upper_bound" is displayed instead of "color_upper_bound - Inf"
-          #function(type, cuts) {
-          # labels <- paste0(cuts[-length(cuts)], " – ", cuts[-1])
-          # if (!is.null(color_upper_bound)) {
-          #  labels[5] <- paste0("> ", color_upper_bound)
-          # }
           labFormat = leaflet::labelFormat(
             big.mark = ",",
             digits = 0,
