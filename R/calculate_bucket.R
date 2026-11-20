@@ -85,12 +85,12 @@ calculate_bucket <- function(
     ## when there are two 0 in breaks (only one region), we want to create a unique color group 100-100 that's white
     ## also max_bin_oneside gets two 0 counted, need to take 1 out
     ## in the end we end up with 3 colors: slightly above, at center, slightly below
-    color_val <- colorRampPalette(
+    color_val <- grDevices::colorRampPalette(
       colors = c(color_center, color_above),
       space = "Lab"
     ) #(breaks_above) #only pos bins, all neg are zero
   } else if (sum(breaks_above) == 0) {
-    color_val <- colorRampPalette(
+    color_val <- grDevices::colorRampPalette(
       colors = c(color_below, color_center),
       space = "Lab"
     ) #(breaks_below) #only neg bins, all pos are zero
@@ -99,13 +99,13 @@ calculate_bucket <- function(
     # then for each side take the effective ones (drop the ones not needed)
 
     # negative: (length(neg_jenks)-1) is number of effective color groups for negative ones; if it's 1 we want to take the last color
-    color_val_negative <- colorRampPalette(
+    color_val_negative <- grDevices::colorRampPalette(
       colors = c(color_below, color_center),
       space = "Lab"
     ) #(breaks_below)
 
     # positive: (length(pos_jenks)-1) is number of effective color groups for positive ones; if it's 1 we want to take the first color
-    color_val_positive <- colorRampPalette(
+    color_val_positive <- grDevices::colorRampPalette(
       colors = c(color_center, color_above),
       space = "Lab"
     ) #(breaks_above)
